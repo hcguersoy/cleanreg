@@ -4,9 +4,9 @@ This is a small tool to delete tags, or, to be more correct, delete image manife
 
 Please be aware of that this is a soft delete. You've to run the registry garbage collection after this tool has been applied.
 
-For Docker Registry v2 API specification see [https://docs.docker.com/registry/spec/api/]().
+For Docker Registry v2 API specification see [https://docs.docker.com/registry/spec/api/](https://docs.docker.com/registry/spec/api/).
 
-Information about the needed garbage collection is described at [https://docs.docker.com/registry/garbage-collection/]().
+Information about the needed garbage collection is described at [https://docs.docker.com/registry/garbage-collection/](https://docs.docker.com/registry/garbage-collection/).
 
 ## Prerequisits and supported Plattform
 
@@ -18,9 +18,11 @@ You need to install the Python module *requests*:
 $ pip install requests
 ```
 
+Be sure to configure your registry server to allow deletion (see [https://docs.docker.com/registry/configuration/#/delete](https://docs.docker.com/registry/configuration/#/delete)).
+
 ## Usage
 
-Download the file *cleanref.py* or clone this repsitory to a local directory.
+Download the file *cleanreg.py* or clone this repsitory to a local directory.
 
 ```
 $ ./cleanreg.py -h
