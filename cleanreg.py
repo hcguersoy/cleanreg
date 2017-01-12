@@ -44,16 +44,20 @@ def parse_arguments():
 
     args = parser.parse_args()
 
+    # check if keepimages is set that it is not negative
+    if (args.keepimages is not None) and (args.keepimages < 0):
+        parser.error("[-k] has to be a positive integer!")
+
     # hackish mutually exclusive group
-    if (args.reponame or args.keepimages) and args.reposfile:
+    if (args.reponame or (args.keepimages is not None)) and args.reposfile:
         parser.error("[-n|-k] and [-f] cant be used together")
 
     # hackish dependent arguments
-    if bool(args.reponame) ^ bool(args.keepimages):
+    if bool(args.reponame) ^ (args.keepimages is not None):
         parser.error("[-n] and [-k] has to be used together.")
 
     # hackish dependent arguments
-    if bool(args.reponame or args.keepimages) is False and bool(args.reposfile) is False:
+    if bool(args.reponame or (args.keepimages is not None)) is False and bool(args.reposfile) is False:
         parser.error("[-n|-k] or [-f] has to be used!")
     return args
 
@@ -249,7 +253,7 @@ def create_repo_list(cmd_args):
     :return: A dict in the format repositoryname : amount of images to be kept
              and a list of the repository names
     """
-    if bool(cmd_args.reponame) and bool(cmd_args.keepimages):
+    if bool(cmd_args.reponame) and (cmd_args.keepimages is not None):
         if cmd_args.verbose > 1:
             print "In single repo mode."
             print "Will keep {0} images from repo {1}".format(cmd_args.keepimages, cmd_args.reponame)
