@@ -1,4 +1,4 @@
-# Registry Cleaner 
+﻿# Registry Cleaner 
 
 This is a small tool to delete tags, or, to be more correct, delete image manifests, from a Docker Registry implementing the API v2.
 
@@ -58,12 +58,14 @@ Cleaning up a single repository called mysql on registry server 192.168.56.2:500
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5
 ```
-Cleaning up multiple repositorys defined in a configuration file:
+Cleaning up multiple repositories defined in a configuration file:
 
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf
 ```
 The configuration file has the format `<repository name> <images to keep>`. An example file can be found in the repository.
+
+There is a simple script added to create multiple image tags (based on `busybox`) on your registry server.
 
 ## Runing Garbage Collection 
 
