@@ -1,4 +1,4 @@
-﻿# Registry Cleaner 
+﻿# Registry Cleaner
 
 This is a small tool to delete tags, or, to be more correct, delete image manifests, from a Docker Registry implementing the API v2.
 
@@ -54,9 +54,8 @@ optional arguments:
 You can use it directly with the public docker image:
 
 ```
-docker run --rm hcguersoy/cleanreg
+docker run --rm -it hcguersoy/cleanreg
 ```
-
 
 ## Examples
 
@@ -72,16 +71,26 @@ Cleaning up multiple repositories defined in a configuration file:
 ```
 The configuration file has the format `<repository name> <images to keep>`. An example file can be found in the repository.
 
+
+If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
+
+```
+docker run --rm -it -v /cleanreg-example.conf:./cleanreg-example.conf hcguersoy/cleanreg -r  http://192.168.56.2:5000 -f cleanreg-example.conf
+```
+
 There is a simple script added to create multiple image tags (based on `busybox`) on your registry server.
 
-## Runing Garbage Collection 
+
+
+
+## Runing Garbage Collection
 
 Example on running the garbage collection:
 
 ```
 $ docker run -it --rm \
   -v /docker/registry2:/var/lib/registry:rw \
-  registry:latest bin/registry \ 
+  registry:latest bin/registry \
   garbage-collect /etc/docker/registry/config.yml
 ```
 
