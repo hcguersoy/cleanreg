@@ -51,6 +51,13 @@ optional arguments:
                         many images should be kept.
 ```
 
+You can use it directly with the public docker image:
+
+```
+docker run --rm hcguersoy/cleanreg
+```
+
+
 ## Examples
 
 Cleaning up a single repository called mysql on registry server 192.168.56.2:5000 and keeping 5 of the latest images:
