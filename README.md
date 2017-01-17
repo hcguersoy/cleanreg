@@ -51,11 +51,12 @@ optional arguments:
                         many images should be kept.
 ```
 
-You can use it directly with the public docker image
+You can use it directly with the public docker image:
 
 ```
-docker run --rm cguersoy/cleanreg
+docker run --rm hcguersoy/cleanreg
 ```
+
 
 ## Examples
 
