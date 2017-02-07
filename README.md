@@ -60,11 +60,13 @@ optional arguments:
                         self signed TLS is used in the registry server.
 ```
 
-You can use it directly with the public docker image:
+In addition, you can obtain the public docker image to run it in a container:
 
 ```
 docker run --rm -it hcguersoy/cleanreg
 ```
+
+The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
 
 ## Examples
 
