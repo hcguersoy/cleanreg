@@ -41,6 +41,8 @@ def parse_arguments():
                         type=int)
     parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
                                                   "how many images should be kept.")
+    parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
+                                               "TLS is used in the registry server.", default=None)
 
     args = parser.parse_args()
 
@@ -111,18 +113,19 @@ def print_headers(headers):
         print "  > {0}   ->  {1}".format(header_element, headers.get(header_element))
 
 
-def is_v2_registry(verbose, regserver):
+def is_v2_registry(verbose, regserver, cacert=None):
     """
     Checks if the given server is really a v2 registry.
     :param verbose: verbosity level
     :param regserver: the URL of the reg server
+    :param cacert: the path to a cacert file
     :return: True if it is really a v2 server
     """
 
     if verbose > 0:
         print 'Check if registry server supports v2...'
     check_url = regserver
-    check_result = requests.get(check_url)
+    check_result = requests.get(check_url, verify=cacert)
 
     if verbose > 1:
         print "Check result code:", check_result.status_code
@@ -151,7 +154,7 @@ def is_v2_registry(verbose, regserver):
         return False
 
 
-def get_digest_by_tag(verbose, regserver, repository, tag):
+def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     """
     Retrieves the Digest of an image tag.
 
@@ -159,6 +162,7 @@ def get_digest_by_tag(verbose, regserver, repository, tag):
     :param regserver: the URL of the reg server
     :param repository: the repositroy name
     :param tag: the tag of the image
+    :param cacert: the path to a cacert file
     :return: The docker image digest
     """
     # set accept type
@@ -166,7 +170,7 @@ def get_digest_by_tag(verbose, regserver, repository, tag):
     req_url = regserver + repository + "/manifests/" + tag
     if verbose > 1:
         print "Will use following URL to retrieve digest:", req_url
-    head_result = requests.head(req_url, headers=req_headers)
+    head_result = requests.head(req_url, headers=req_headers, verify=cacert)
 
     head_status = head_result.status_code
     if verbose > 2:
@@ -193,7 +197,7 @@ def get_digest_by_tag(verbose, regserver, repository, tag):
     return cur_digest
 
 
-def delete_manifest(verbose, regserver, repository, cur_digest):
+def delete_manifest(verbose, regserver, repository, cur_digest, cacert=None):
     """
     Deletes a manifest based on a digest.
 
@@ -201,6 +205,7 @@ def delete_manifest(verbose, regserver, repository, cur_digest):
     :param regserver: the URL of the reg server
     :param repository: the repositroy name
     :param cur_digest: the digest if the image which has to be deleted
+    :param cacert: the path to a cacert file
     """
     req_headers = {'Accept': 'application/vnd.docker.distribution.manifest.v2+json'}
     req_url = regserver + repository + "/manifests/" + cur_digest
@@ -211,7 +216,7 @@ def delete_manifest(verbose, regserver, repository, cur_digest):
     del_status_ok = 202
     if verbose > 1:
         print "Will use following URL to delete manifest:", req_url
-    delete_result = requests.delete(req_url, headers=req_headers)
+    delete_result = requests.delete(req_url, headers=req_headers, verify=cacert)
     delete_status = delete_result.status_code
     if verbose > 1:
         print "Delete result status code is:", delete_status
@@ -229,7 +234,7 @@ def delete_manifest(verbose, regserver, repository, cur_digest):
         print "Deleted tag with digest", cur_digest
 
 
-def delete_tag(verbose, regserver, repository, tag):
+def delete_tag(verbose, regserver, repository, tag, cacert):
     """
     High level method to delete a tag from a repositroy.
 
@@ -237,11 +242,12 @@ def delete_tag(verbose, regserver, repository, tag):
     :param regserver: the URL of the reg server
     :param repository: the repository name
     :param tag: the tag which has to be deleted
+    :param cacert: the path to a cacert file
     """
     # retrieve the digest of the image
-    digest = get_digest_by_tag(verbose, regserver, repository, tag)
+    digest = get_digest_by_tag(verbose, regserver, repository, tag, cacert)
     # and now delete the tag...
-    delete_manifest(verbose, regserver, repository, digest)
+    delete_manifest(verbose, regserver, repository, digest, cacert)
 
 
 def create_repo_list(cmd_args):
@@ -277,7 +283,7 @@ def create_repo_list(cmd_args):
     return found_repos_counts, found_repos_counts.keys()
 
 
-def get_deletiontags(cmd_args, reg_server, reponame, repo_count):
+def get_deletiontags(cmd_args, reg_server, reponame, repo_count, cacert=None):
     """
     Returns a dict containing a list of the tags to be deleted.
 
@@ -285,13 +291,14 @@ def get_deletiontags(cmd_args, reg_server, reponame, repo_count):
     :param reg_server: regserver: the URL of the reg server
     :param reponame: the repository name
     :param repo_count: amount of images to be kept in repository
+    :param cacert: the path to a cacert file
     :return: a dict of tags to be deleted and the date then they are created
     """
     deletion_tags = {}
     req_url = reg_server + reponame + "/tags/list"
     if cmd_args.verbose > 1:
         print "Will use following URL to retirve tags:", req_url
-    tags_result = requests.get(req_url)
+    tags_result = requests.get(req_url, verify=cacert)
     tags_status = tags_result.status_code
     if args.verbose > 2:
         print "Get tags result is:", tags_status
@@ -315,7 +322,7 @@ def get_deletiontags(cmd_args, reg_server, reponame, repo_count):
         for key in tags_all:
             metadata_request = reg_server + reponame + "//manifests/" + key
             metadata_header = {'Accept': 'application/vnd.docker.distribution.manifest.v1+json'}
-            metadata = requests.get(metadata_request, headers=metadata_header).json()
+            metadata = requests.get(metadata_request, headers=metadata_header, verify=cacert).json()
             # pick the latest history entry and grab the creation date
             tag_dates[key] = json.loads(metadata['history'][0]['v1Compatibility'])['created']
         sorted_tags = sorted(tag_dates.iteritems(), key=lambda (k, v): (v, k), reverse=True)
@@ -337,7 +344,7 @@ args = parse_arguments()
 reg_server_api = args.registry + "/v2/"
 
 # initially check if we've a v2 registry server
-if is_v2_registry(args.verbose, reg_server_api) is False:
+if is_v2_registry(args.verbose, reg_server_api, args.cacert) is False:
     print "Exiting, none V2 registry."
     sys.exit(1)
 
@@ -356,7 +363,7 @@ for repo, count in repos_counts.iteritems():
     if args.verbose > 0:
         print
         print "will delete repo {0} and keep {1} images.".format(repo, count)
-    del_tags = get_deletiontags(args, reg_server_api, repo, count)
+    del_tags = get_deletiontags(args, reg_server_api, repo, count, args.cacert)
     if len(del_tags) > 0:
         repo_del_tags[repo] = del_tags
 
@@ -374,7 +381,7 @@ if answer is True and len(repo_del_tags) > 0:
     print "Deleting"
     for repo, del_tags in repo_del_tags.iteritems():
         for tag, _ in del_tags:
-            delete_tag(args.verbose, reg_server_api, repo, tag)
+            delete_tag(args.verbose, reg_server_api, repo, tag, args.cacert)
 else:
     print "Aborted by user or nothing to delete."
     sys.exit(1)

@@ -8,6 +8,11 @@ For Docker Registry v2 API specification see [https://docs.docker.com/registry/s
 
 Information about the needed garbage collection is described at [https://docs.docker.com/registry/garbage-collection/](https://docs.docker.com/registry/garbage-collection/).
 
+## History
+
+* v0.2 - added support for registry server using self signed certificates
+* v0.1 - first version with basics 
+
 ## Prerequisits and supported Plattform
 
 This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. The latest used Docker Resgistry was version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1).
@@ -27,7 +32,7 @@ Download the file *cleanreg.py* or clone this repsitory to a local directory.
 ```
 $ ./cleanreg.py -h
 usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-q] [-n REPONAME]
-                   [-k KEEPIMAGES] [-f REPOSFILE]
+                   [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT]
 
 Removes images on a docker registry (v2).
 
@@ -35,7 +40,8 @@ optional arguments:
   -h, --help            show this help message and exit
   -v, --verbose         The verbosity level.
   -r REGISTRY, --registry REGISTRY
-                        The registry server to connect to, e.g. 1.2.3.4:5000
+                        The registry server to connect to, e.g.
+                        http://1.2.3.4:5000
   -p, --proxy           Use system level proxy settings accessing registry
                         server if set.By default, the registry server will be
                         accessed without a proxy.
@@ -49,6 +55,9 @@ optional arguments:
   -f REPOSFILE, --reposfile REPOSFILE
                         A file containing the list of Repositories and how
                         many images should be kept.
+  -c CACERT, --cacert CACERT
+                        Path to a valid CA certificate file. This is needed if
+                        self signed TLS is used in the registry server.
 ```
 
 You can use it directly with the public docker image:
@@ -80,6 +89,13 @@ docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.conf hcgue
 
 There is a simple script added to create multiple image tags (based on `busybox`) on your registry server.
 
+If you have installed a *semi secure* registry server using TLS and self signed certificates you have to provide the path to the CA certificate file:
+
+```
+./cleanreg.py -r https://192.168.56.3:5000 -c /my/certifacates/ca.pem -f cleanreg-example.conf
+```
+
+If you run *cleanreg* in a container you should not forget to mount the certificate file into the container like configuration file above.
 
 ## Runing Garbage Collection
 
@@ -98,4 +114,4 @@ The registry itself should be stopped before running this.
 
 ## Contribution
 
-Please feel free to contribute your chages as a PR.
+Please feel free to contribute your changes as a PR.
