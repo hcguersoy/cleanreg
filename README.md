@@ -75,12 +75,10 @@ The configuration file has the format `<repository name> <images to keep>`. An e
 If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
 
 ```
-docker run --rm -it -v /cleanreg-example.conf:./cleanreg-example.conf hcguersoy/cleanreg -r  http://192.168.56.2:5000 -f cleanreg-example.conf
+docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.conf hcguersoy/cleanreg:<version> -r  http://192.168.56.2:5000 -f cleanreg-example.conf
 ```
 
 There is a simple script added to create multiple image tags (based on `busybox`) on your registry server.
-
-
 
 
 ## Runing Garbage Collection
