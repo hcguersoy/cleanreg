@@ -343,17 +343,17 @@ args = parse_arguments()
 
 reg_server_api = args.registry + "/v2/"
 
+if args.proxy is False:
+    if args.verbose > 1:
+        print "Will exclude registryserver location from proxy:", urlparse(args.registry).netloc
+    os.environ['no_proxy'] = urlparse(args.registry).netloc
+
 # initially check if we've a v2 registry server
 if is_v2_registry(args.verbose, reg_server_api, args.cacert) is False:
     print "Exiting, none V2 registry."
     sys.exit(1)
 
 repos_counts, repos = create_repo_list(args)
-
-if args.proxy is False:
-    if args.verbose > 1:
-        print "Will exclude registryserver location from proxy:", urlparse(args.registry).netloc
-    os.environ['no_proxy'] = urlparse(args.registry).netloc
 
 x = 0
 repo_del_tags = {}
