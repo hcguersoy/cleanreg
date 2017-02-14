@@ -10,12 +10,13 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
+* v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag. 
 * v0.2 - added support for registry server using self signed certificates
 * v0.1 - first version with basics 
 
 ## Prerequisits and supported Plattform
 
-This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. The latest used Docker Resgistry was version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1).
+This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. The latest used Docker Registry was version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1).
 
 You need to install the Python module *requests*:
 
@@ -27,12 +28,12 @@ Be sure to configure your registry server to allow deletion (see [https://docs.d
 
 ## Usage
 
-Download the file *cleanreg.py* or clone this repsitory to a local directory.
+Download the file *cleanreg.py* or clone this repository to a local directory.
 
 ```
 $ ./cleanreg.py -h
 usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-q] [-n REPONAME]
-                   [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT]
+                   [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT] [-i]
 
 Removes images on a docker registry (v2).
 
@@ -50,23 +51,29 @@ optional arguments:
   -n REPONAME, --reponame REPONAME
                         The name of the repo which should be cleaned up
   -k KEEPIMAGES, --keepimages KEEPIMAGES
-                        Amount of images which should be kept for the given
-                        repo.
+                        Amount of images (not tags!) which should be kept for
+                        the given repo.
   -f REPOSFILE, --reposfile REPOSFILE
                         A file containing the list of Repositories and how
                         many images should be kept.
   -c CACERT, --cacert CACERT
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
+  -i, --ignore-ref-tags
+                        Ignore tag, or more correct, a digest, if it is
+                        referenced multiple times. ATTENTION: the default if
+                        False!
 ```
 
 In addition, you can obtain the public docker image to run it in a container:
 
 ```
-docker run --rm -it hcguersoy/cleanreg
+docker run --rm hcguersoy/cleanreg:v0.3
 ```
 
 The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
+
+*Hint:* `latest` tag is not provided anymore!
 
 ## Examples
 
@@ -75,6 +82,16 @@ Cleaning up a single repository called mysql on registry server 192.168.56.2:500
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5
 ```
+Be aware that you don't keep here the five last tags but digests/images. As a digest can be associated with multiple tags this can result in deletion of images which you not intended in!
+To be secure use the `-i` flag:
+
+```
+./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5 -i
+```
+
+Same as above but ignore images which are associated with multiple tags.
+
+
 Cleaning up multiple repositories defined in a configuration file:
 
 ```
@@ -97,14 +114,14 @@ If you have installed a *semi secure* registry server using TLS and self signed 
 ./cleanreg.py -r https://192.168.56.3:5000 -c /my/certifacates/ca.pem -f cleanreg-example.conf
 ```
 
-If you run *cleanreg* in a container you should not forget to mount the certificate file into the container like configuration file above.
+If you run *cleanreg* in a container you should not forget to mount the certificate file into the container like the configuration file above.
 
 ## Runing Garbage Collection
 
 Example on running the garbage collection:
 
 ```
-$ docker run -it --rm \
+$ docker run --rm \
   -v /docker/registry2:/var/lib/registry:rw \
   registry:latest bin/registry \
   garbage-collect /etc/docker/registry/config.yml
