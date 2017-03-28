@@ -8,6 +8,7 @@ import argparse
 from urlparse import urlparse
 import json
 import collections
+import base64
 
 __author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>'
 __license__ = '''
@@ -48,6 +49,8 @@ def parse_arguments():
     parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest, if it is referenced by multiple tags. "
                                                         "ATTENTION: the default if False!",
                         default=False, action='store_true', dest='ignoretag')
+    parser.add_argument('-u', '--basicauth-user', help="The username, if the registry is protected with basic auth", dest='basicauthuser')
+    parser.add_argument('-pw', '--basicauth-pw', help="The password, if the registry is protected with basic auth", dest='basicauthpw')
 
     args = parser.parse_args()
 
@@ -130,6 +133,7 @@ def is_v2_registry(verbose, regserver, cacert=None):
     if verbose > 0:
         print 'Check if registry server supports v2...'
     check_url = regserver
+    
     check_result = requests.get(check_url, verify=cacert)
 
     if verbose > 1:
@@ -158,6 +162,16 @@ def is_v2_registry(verbose, regserver, cacert=None):
         print "Found a v2 repo but return code is ", check_result.status_code
         return False
 
+def generate_request_headers(api_version=2):
+    cmd_args = args
+    if api_version == 1:
+        accept_string = 'application/vnd.docker.distribution.manifest.v1+json'
+    else:
+        accept_string = 'application/vnd.docker.distribution.manifest.v2+json'
+    headers = {'Accept': accept_string}
+    if (cmd_args.basicauthuser is not None) and (cmd_args.basicauthpw is not None):
+        headers['Authorization'] = 'Basic ' + base64.b64encode(bytes(cmd_args.basicauthuser + ':' + cmd_args.basicauthpw, 'utf-8'))
+    return headers
 
 def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     """
@@ -171,7 +185,7 @@ def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     :return: The docker image digest
     """
     # set accept type
-    req_headers = {'Accept': 'application/vnd.docker.distribution.manifest.v2+json'}
+    req_headers = generate_request_headers()
     req_url = regserver + repository + "/manifests/" + tag
     if verbose > 1:
         print "Will use following URL to retrieve digest:", req_url
@@ -214,7 +228,7 @@ def delete_manifest(verbose, regserver, repository, cur_digest, cacert=None):
     :param cacert: the path to a cacert file
     """
     # Attention: this is needed if you are running a registry >= 2.3
-    req_headers = {'Accept': 'application/vnd.docker.distribution.manifest.v2+json'}
+    req_headers = generate_request_headers()
     req_url = regserver + repository + "/manifests/" + cur_digest
     # as specified by the v2 API, DELETE returns a 202
     # Be aware of the real intention of this status code:
