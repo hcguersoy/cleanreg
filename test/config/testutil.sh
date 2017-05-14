@@ -132,7 +132,7 @@ function createTestdata {
    for i in `seq ${TAGBEGIN} ${TAGEND}`
    do
       echo "Creating image with tag ${i}"
-      docker build --rm -t localhost:5000/${IMAGENAME}:${i} --build-arg tag=${i} --no-cache=true ${DIRNAME}/dummybox
+      docker build --quiet --rm -t localhost:5000/${IMAGENAME}:${i} --build-arg tag=${i} --no-cache=true ${DIRNAME}/dummybox
       docker push localhost:5000/${IMAGENAME}:${i}
       # remove local copy
       docker rmi -f localhost:5000/${IMAGENAME}:${i}
