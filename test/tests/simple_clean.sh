@@ -3,16 +3,33 @@
 source ../config/testutil.sh
 
 
-setUp(){
-   startRegistryBasicAuth
+setUp() {
+   echo "Create images for registry and cleanreg"
+   createRegistryImages
+   createCleanregImage
 }
 
 
-testEquality()
-{
-  #docker pull busybox
-  assertEquals 1 2
+testEquali() {
+   startRegistry
+   createTestdata "abc" 1 5
+  
+   assertImageExists "abc" 1
+   assertImageExists "abc" 2
+   assertImageExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
+    
+   runCleanreg -n abc -k 2
+
+   assertImageNotExists "abc" 1
+   assertImageNotExists "abc" 2
+   assertImageNotExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
+
+  #runGarbageCollection
 }
 
 # load shunit2
-. ../config/shunit-2.1/src/shunit2
+. ../config/shunit2
