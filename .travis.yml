@@ -1,0 +1,9 @@
+sudo: required
+
+services:
+ - docker
+
+script:
+ - cd test/tests
+ - chmod +x simple_clean.sh
+ - ./simple_clean.sh
