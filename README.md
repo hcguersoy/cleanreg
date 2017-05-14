@@ -1,4 +1,5 @@
-﻿# Registry Cleaner
+﻿[![Build Status](https://travis-ci.org/kekru/cleanreg.svg?branch=master)](https://travis-ci.org/kekru/cleanreg)  
+# Registry Cleaner
 
 This is a small tool to delete tags, or, to be more correct, delete image manifests, from a Docker Registry implementing the API v2.
 
