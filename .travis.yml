@@ -9,3 +9,5 @@ script:
  - cd test
  - chmod +x runAllTests.sh
  - ./runAllTests.sh
+
+dist: trusty
