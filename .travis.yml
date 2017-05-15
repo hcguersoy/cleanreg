@@ -5,6 +5,9 @@ before_script:
  - sudo chmod 777 /var/run/docker.sock
  - docker version
 
+env:
+ - REGISTRYTAG: 2.6.1
+
 script:
  - cd test
  - chmod +x runAllTests.sh
