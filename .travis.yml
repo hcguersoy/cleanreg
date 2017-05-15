@@ -5,9 +5,8 @@ services:
  
 before_script:
  - docker version
- - sudo apt-get install -y realpath
 
 script:
- - cd test/tests
- - chmod +x simple_clean.sh
- - ./simple_clean.sh
+ - cd test
+ - chmod +x runAllTests.sh
+ - ./runAllTests.sh
