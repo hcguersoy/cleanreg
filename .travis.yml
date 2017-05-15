@@ -2,6 +2,7 @@ sudo: required
  
 before_script:
  - curl -sSL https://get.docker.com/ | sh
+ - alias docker="sudo docker"
  - docker version
 
 script:
