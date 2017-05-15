@@ -8,6 +8,11 @@
 #######################################
 function runTestFile {
    docker run --rm -it -e REGISTRYTAG=$2 --net=host -v $(pwd):/data:ro -v /var/run/docker.sock:/var/run/docker.sock:ro testrunner "cd /data/test/tests; ./$1"
+   EXITCODE=$?
+   if [[ $EXITCODE -ne 0 ]]; then
+      echo "Test failure"
+      exit 1
+   fi
 }
 
 #Create the testrunner image
@@ -16,5 +21,5 @@ cd ..
 
 #Run the testfiles
 runTestFile simple_clean.sh 2.5.1
-runTestFile simple_clean.sh 2.6.1
-runTestFile simple_clean.sh latest
+#runTestFile simple_clean.sh 2.6.1
+#runTestFile simple_clean.sh latest
