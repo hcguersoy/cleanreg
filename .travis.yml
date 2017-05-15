@@ -1,12 +1,9 @@
 sudo: required
-dist: trusty
-
-services:
-  - docker
+dist: xenial
   
 before_script:
- #- curl -sSL https://get.docker.com/ | sh
- #- sudo chmod 777 /var/run/docker.sock
+ - curl -sSL https://get.docker.com/ | sh
+ - sudo chmod 777 /var/run/docker.sock
  - docker version
 
 script:
