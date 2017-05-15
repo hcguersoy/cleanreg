@@ -1,13 +1,15 @@
 sudo: required
- 
+dist: trusty
+
+services:
+  - docker
+  
 before_script:
- - curl -sSL https://get.docker.com/ | sh
- - sudo chmod 777 /var/run/docker.sock
+ #- curl -sSL https://get.docker.com/ | sh
+ #- sudo chmod 777 /var/run/docker.sock
  - docker version
 
 script:
  - cd test
  - chmod +x runAllTests.sh
  - ./runAllTests.sh
-
-dist: trusty
