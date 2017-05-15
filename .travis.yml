@@ -2,10 +2,15 @@ sudo: required
  
 before_script:
  - curl -sSL https://get.docker.com/ | sh
- - alias docker="sudo docker"
+ - sudo chmod 777 /var/run/docker.sock
  - docker version
+
+env:
+ - REGISTRYTAG: 2.6.1
 
 script:
  - cd test
  - chmod +x runAllTests.sh
  - ./runAllTests.sh
+
+dist: trusty
