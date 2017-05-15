@@ -64,6 +64,13 @@ optional arguments:
                         Ignore tag, or more correct, a digest, if it is
                         referenced multiple times. ATTENTION: the default if
                         False!
+  -u BASICAUTHUSER, --basicauth-user BASICAUTHUSER
+                        The username, if the registry is protected with basic
+                        auth
+  -pw BASICAUTHPW, --basicauth-pw BASICAUTHPW
+                        The password, if the registry is protected with basic
+                        auth
+
 ```
 
 In addition, you can obtain the public docker image to run it in a container:
