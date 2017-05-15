@@ -16,3 +16,5 @@ cd ..
 
 #Run the testfiles
 runTestFile simple_clean.sh 2.5.1
+runTestFile simple_clean.sh 2.6.1
+runTestFile simple_clean.sh latest
