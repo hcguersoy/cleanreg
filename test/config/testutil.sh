@@ -67,10 +67,12 @@ function startRegistry {
    fi
 
    docker rm -f registry
+   sleep 2
    echo "Starting registry based on image $IMAGENAME"
    #echo "Registrydata is stored in $REGISTRYDATA"
    #docker run -d --name registry -p 5000:5000 -v $REGISTRYDATA:/var/lib/registry $IMAGENAME
    docker run -d --name registry -p 5000:5000 $IMAGENAME
+   sleep 5
 }
 
 #######################################
