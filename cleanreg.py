@@ -164,7 +164,6 @@ def is_v2_registry(verbose, regserver, cacert=None):
         return False
 
 def generate_request_headers(api_version=2):
-    cmd_args = args
     if api_version == 1:
         accept_string = 'application/vnd.docker.distribution.manifest.v1+json'
     else:
