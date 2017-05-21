@@ -10,7 +10,7 @@ import json
 import collections
 from requests.auth import HTTPBasicAuth
 
-__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>'
+__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, Kevin Krummenauer <kevin@whiledo.de>'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2017
