@@ -145,6 +145,34 @@ This maps the local directory /docker/registry2 into the container, and calls th
 The pointed config file is the default configuration.
 The registry itself should be stopped before running this.
 
+## Run tests
+
+Prerequisites:
++ Bash
++ Locally installed Docker engine (remote execution is not yet implemented)
+
+You can run all tests, with the runAllTests.sh script:
+ 
+```
+cd test
+./runAllTests.sh
+```
+This will run all tests and repeat them for different versions of the Docker Registry.
+
+To run a single test, change to the `test/tests` directory and run a test script:
+
+```
+cd test/tests
+./simple_clean.sh
+```
+By default the test will start the Docker Registry from Docker Hub with the tag `latest`. To specify another registry version, write its Docker Hub tag to the environment variable `REGISTRYTAG`.
+
+```
+cd test/tests
+export REGISTRYTAG=2.5.1
+./simple_clean.sh
+```
+
 ## Contribution
 
 Please feel free to contribute your changes as a PR.
