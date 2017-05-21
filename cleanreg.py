@@ -8,7 +8,6 @@ import argparse
 from urlparse import urlparse
 import json
 import collections
-import base64
 from requests.auth import HTTPBasicAuth
 
 __author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>'
