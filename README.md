@@ -124,6 +124,12 @@ If you have installed a *semi secure* registry server using TLS and self signed 
 
 If you run *cleanreg* in a container you should not forget to mount the certificate file into the container like the configuration file above.
 
+If your registry is protected with basic auth and the username is `test` and the password is `secret`, you have to pass these credentials to *cleanreg*.
+
+```
+./cleanreg.py -r https://192.168.56.3:5000 -u test -pw secret -f cleanreg-example.conf
+```
+
 ## Runing Garbage Collection
 
 Example on running the garbage collection:
