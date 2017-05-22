@@ -1,4 +1,4 @@
-﻿[![Build Status](https://travis-ci.org/kekru/cleanreg.svg?branch=master)](https://travis-ci.org/kekru/cleanreg)  
+[![Build Status](https://travis-ci.org/hcguersoy/cleanreg.svg?branch=master)](https://travis-ci.org/hcguersoy/cleanreg)
 # Registry Cleaner
 
 This is a small tool to delete tags, or, to be more correct, delete image manifests, from a Docker Registry implementing the API v2.
@@ -15,7 +15,7 @@ Information about the needed garbage collection is described at [https://docs.do
 * v0.2 - added support for registry server using self signed certificates
 * v0.1 - first version with basics 
 
-## Prerequisits and supported Plattform
+## Prerequisites and supported Plattform
 
 This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. The latest used Docker Registry was version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1).
 
@@ -145,18 +145,25 @@ This maps the local directory /docker/registry2 into the container, and calls th
 The pointed config file is the default configuration.
 The registry itself should be stopped before running this.
 
-## Run tests
+## Contribution
+
+Feel free to contribute your changes as a PR. Please ensure that the tests run without errors and provide tests for additional functionality.
+
+
+### Run tests
 
 Prerequisites:
-+ Bash
-+ Locally installed Docker engine (remote execution is not yet implemented)
 
-You can run all tests, with the runAllTests.sh script:
+* Bash
+* Locally installed Docker engine (remote execution is not yet implemented; runs with Docker for MacOS fine)
+
+You can run all tests, with the *runAllTests.sh* script:
  
 ```
 cd test
 ./runAllTests.sh
 ```
+
 This will run all tests and repeat them for different versions of the Docker Registry.
 
 To run a single test, change to the `test/tests` directory and run a test script:
@@ -172,7 +179,3 @@ cd test/tests
 export REGISTRYTAG=2.5.1
 ./simple_clean.sh
 ```
-
-## Contribution
-
-Please feel free to contribute your changes as a PR.
