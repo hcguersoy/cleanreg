@@ -11,6 +11,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
+* v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
 * v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag. 
 * v0.2 - added support for registry server using self signed certificates
 * v0.1 - first version with basics 
@@ -76,7 +77,7 @@ optional arguments:
 In addition, you can obtain the public docker image to run it in a container:
 
 ```
-docker run --rm hcguersoy/cleanreg:v0.3
+docker run --rm hcguersoy/cleanreg:v0.4
 ```
 
 The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
