@@ -8,8 +8,9 @@ import argparse
 from urlparse import urlparse
 import json
 import collections
+from requests.auth import HTTPBasicAuth
 
-__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>'
+__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, Kevin Krummenauer <kevin@whiledo.de>'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2017
@@ -48,6 +49,8 @@ def parse_arguments():
     parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest, if it is referenced by multiple tags. "
                                                         "ATTENTION: the default if False!",
                         default=False, action='store_true', dest='ignoretag')
+    parser.add_argument('-u', '--basicauth-user', help="The username, if the registry is protected with basic auth", dest='basicauthuser')
+    parser.add_argument('-pw', '--basicauth-pw', help="The password, if the registry is protected with basic auth", dest='basicauthpw')
 
     args = parser.parse_args()
 
@@ -130,7 +133,8 @@ def is_v2_registry(verbose, regserver, cacert=None):
     if verbose > 0:
         print 'Check if registry server supports v2...'
     check_url = regserver
-    check_result = requests.get(check_url, verify=cacert)
+    
+    check_result = requests.get(check_url, verify=cacert, auth=get_auth())
 
     if verbose > 1:
         print "Check result code:", check_result.status_code
@@ -158,6 +162,19 @@ def is_v2_registry(verbose, regserver, cacert=None):
         print "Found a v2 repo but return code is ", check_result.status_code
         return False
 
+def generate_request_headers(api_version=2):
+    if api_version == 1:
+        accept_string = 'application/vnd.docker.distribution.manifest.v1+json'
+    else:
+        accept_string = 'application/vnd.docker.distribution.manifest.v2+json'
+    headers = {'Accept': accept_string}
+    return headers
+
+def get_auth():
+    if (args.basicauthuser is not None) and (args.basicauthpw is not None):
+        return HTTPBasicAuth(args.basicauthuser, args.basicauthpw)
+    else:
+        return None    
 
 def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     """
@@ -171,11 +188,11 @@ def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     :return: The docker image digest
     """
     # set accept type
-    req_headers = {'Accept': 'application/vnd.docker.distribution.manifest.v2+json'}
+    req_headers = generate_request_headers()
     req_url = regserver + repository + "/manifests/" + tag
     if verbose > 1:
         print "Will use following URL to retrieve digest:", req_url
-    head_result = requests.head(req_url, headers=req_headers, verify=cacert)
+    head_result = requests.head(req_url, headers=req_headers, verify=cacert, auth=get_auth())
 
     head_status = head_result.status_code
     if verbose > 2:
@@ -214,7 +231,7 @@ def delete_manifest(verbose, regserver, repository, cur_digest, cacert=None):
     :param cacert: the path to a cacert file
     """
     # Attention: this is needed if you are running a registry >= 2.3
-    req_headers = {'Accept': 'application/vnd.docker.distribution.manifest.v2+json'}
+    req_headers = generate_request_headers()
     req_url = regserver + repository + "/manifests/" + cur_digest
     # as specified by the v2 API, DELETE returns a 202
     # Be aware of the real intention of this status code:
@@ -223,7 +240,7 @@ def delete_manifest(verbose, regserver, repository, cur_digest, cacert=None):
     del_status_ok = 202
     if verbose > 1:
         print "Will use following URL to delete manifest:", req_url
-    delete_result = requests.delete(req_url, headers=req_headers, verify=cacert)
+    delete_result = requests.delete(req_url, headers=req_headers, verify=cacert, auth=get_auth())
     delete_status = delete_result.status_code
     if verbose > 1:
         print "Delete result status code is:", delete_status
@@ -329,7 +346,7 @@ def get_deletiontags(cmd_args, reg_server, reponame, repo_count, cacert=None):
     req_url = reg_server + reponame + "/tags/list"
     if cmd_args.verbose > 1:
         print "Will use following URL to retirve tags:", req_url
-    tags_result = requests.get(req_url, verify=cacert)
+    tags_result = requests.get(req_url, verify=cacert, auth=get_auth())
     tags_status = tags_result.status_code
     if args.verbose > 2:
         print "Get tags result is:", tags_status
@@ -358,7 +375,7 @@ def get_deletiontags(cmd_args, reg_server, reponame, repo_count, cacert=None):
         for key in tags_all:
             metadata_request = reg_server + reponame + "//manifests/" + key
             metadata_header = {'Accept': 'application/vnd.docker.distribution.manifest.v1+json'}
-            metadata = requests.get(metadata_request, headers=metadata_header, verify=cacert).json()
+            metadata = requests.get(metadata_request, headers=metadata_header, verify=cacert, auth=get_auth()).json()
             # pick the latest history entry and grab the creation date of the image
             # be aware that is NOT the tagging date but image creation!
             tag_dates[key] = json.loads(metadata['history'][0]['v1Compatibility'])['created']

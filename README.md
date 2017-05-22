@@ -1,4 +1,5 @@
-﻿# Registry Cleaner
+﻿[![Build Status](https://travis-ci.org/kekru/cleanreg.svg?branch=master)](https://travis-ci.org/kekru/cleanreg)  
+# Registry Cleaner
 
 This is a small tool to delete tags, or, to be more correct, delete image manifests, from a Docker Registry implementing the API v2.
 
@@ -63,6 +64,13 @@ optional arguments:
                         Ignore tag, or more correct, a digest, if it is
                         referenced multiple times. ATTENTION: the default if
                         False!
+  -u BASICAUTHUSER, --basicauth-user BASICAUTHUSER
+                        The username, if the registry is protected with basic
+                        auth
+  -pw BASICAUTHPW, --basicauth-pw BASICAUTHPW
+                        The password, if the registry is protected with basic
+                        auth
+
 ```
 
 In addition, you can obtain the public docker image to run it in a container:
@@ -116,6 +124,12 @@ If you have installed a *semi secure* registry server using TLS and self signed 
 
 If you run *cleanreg* in a container you should not forget to mount the certificate file into the container like the configuration file above.
 
+If your registry is protected with basic auth and the username is `test` and the password is `secret`, you have to pass these credentials to *cleanreg*.
+
+```
+./cleanreg.py -r https://192.168.56.3:5000 -u test -pw secret -f cleanreg-example.conf
+```
+
 ## Runing Garbage Collection
 
 Example on running the garbage collection:
@@ -130,6 +144,34 @@ $ docker run --rm \
 This maps the local directory /docker/registry2 into the container, and calls the garbage collection.
 The pointed config file is the default configuration.
 The registry itself should be stopped before running this.
+
+## Run tests
+
+Prerequisites:
++ Bash
++ Locally installed Docker engine (remote execution is not yet implemented)
+
+You can run all tests, with the runAllTests.sh script:
+ 
+```
+cd test
+./runAllTests.sh
+```
+This will run all tests and repeat them for different versions of the Docker Registry.
+
+To run a single test, change to the `test/tests` directory and run a test script:
+
+```
+cd test/tests
+./simple_clean.sh
+```
+By default the test will start the Docker Registry from Docker Hub with the tag `latest`. To specify another registry version, write its Docker Hub tag to the environment variable `REGISTRYTAG`.
+
+```
+cd test/tests
+export REGISTRYTAG=2.5.1
+./simple_clean.sh
+```
 
 ## Contribution
 
