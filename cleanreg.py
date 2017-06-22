@@ -36,8 +36,8 @@ def parse_arguments():
     parser.add_argument('-p', '--proxy', help="Use system level proxy settings accessing registry server if set. "
                                               "By default, the registry server will be accessed without a "
                                               " proxy.", default=False, action='store_true')
-    parser.add_argument('-q', '--quiet', help="If set no user action will appear and all questions will "
-                                              "be answered with YES", default=False, action='store_true')
+    parser.add_argument('-y', '--yes', '--assume-yes', help="If set no user action will appear and all questions will "
+                                              "be answered with YES", default=False, action='store_true', dest="assumeyes")
     parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up")
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
                                                    "for the given repo.",
@@ -424,7 +424,7 @@ for repo, count in repos_counts.iteritems():
                                                   args.cacert)
 
 answer = True
-if args.quiet is False and len(repo_del_digests) > 0:
+if args.assumeyes is False and len(repo_del_digests) > 0:
     print
     print "Repos and according digests to be deleted:"
     for repo, del_digests in repo_del_digests.iteritems():
