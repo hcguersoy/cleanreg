@@ -51,6 +51,8 @@ optional arguments:
   -y, --yes, --assume-yes
                         If set no user action will appear and all questions
                         will be answered with YES
+  -q, --quiet           [deprecated] If set no user action will appear and all
+                        questions will be answered with YES
   -n REPONAME, --reponame REPONAME
                         The name of the repo which should be cleaned up
   -k KEEPIMAGES, --keepimages KEEPIMAGES
