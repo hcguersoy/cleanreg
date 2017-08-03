@@ -11,6 +11,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
+* v0.4.1 - added `--assume-yes` and deprecated `--quiet` flag
 * v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
 * v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag. 
 * v0.2 - added support for registry server using self signed certificates
