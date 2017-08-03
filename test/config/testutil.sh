@@ -23,7 +23,7 @@ function createCleanregImage {
 # Arguments:
 #   Arguments will be passed to cleanreg
 function runCleanreg {
-   docker run --rm -it --net=host -v $(pwd):/data:ro cleanreg --quiet -r http://localhost:5000 --verbose $@
+   docker run --rm -it --net=host -v $(pwd):/data:ro cleanreg --assume-yes -r http://localhost:5000 --verbose $@
 }
 
 #######################################

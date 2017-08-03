@@ -33,9 +33,9 @@ Be sure to configure your registry server to allow deletion (see [https://docs.d
 Download the file *cleanreg.py* or clone this repository to a local directory.
 
 ```
-$ ./cleanreg.py -h
-usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-q] [-n REPONAME]
+usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-n REPONAME]
                    [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT] [-i]
+                   [-u BASICAUTHUSER] [-pw BASICAUTHPW]
 
 Removes images on a docker registry (v2).
 
@@ -46,10 +46,13 @@ optional arguments:
                         The registry server to connect to, e.g.
                         http://1.2.3.4:5000
   -p, --proxy           Use system level proxy settings accessing registry
-                        server if set.By default, the registry server will be
+                        server if set. By default, the registry server will be
                         accessed without a proxy.
-  -q, --quiet           If set no user action will appear and all questions
+  -y, --yes, --assume-yes
+                        If set no user action will appear and all questions
                         will be answered with YES
+  -q, --quiet           [deprecated] If set no user action will appear and all
+                        questions will be answered with YES
   -n REPONAME, --reponame REPONAME
                         The name of the repo which should be cleaned up
   -k KEEPIMAGES, --keepimages KEEPIMAGES
@@ -62,9 +65,8 @@ optional arguments:
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
   -i, --ignore-ref-tags
-                        Ignore tag, or more correct, a digest, if it is
-                        referenced multiple times. ATTENTION: the default if
-                        False!
+                        Ignore a digest, if it is referenced by multiple tags.
+                        ATTENTION: the default if False!
   -u BASICAUTHUSER, --basicauth-user BASICAUTHUSER
                         The username, if the registry is protected with basic
                         auth
