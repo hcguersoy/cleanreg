@@ -11,6 +11,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
+* v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
 * v0.4.1 - added `--assume-yes` and deprecated `--quiet` flag
 * v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
 * v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag. 
@@ -34,15 +35,16 @@ Be sure to configure your registry server to allow deletion (see [https://docs.d
 Download the file *cleanreg.py* or clone this repository to a local directory.
 
 ```
-usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-n REPONAME]
+usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-q] [-n REPONAME]
                    [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT] [-i]
-                   [-u BASICAUTHUSER] [-pw BASICAUTHPW]
+                   [-u BASICAUTHUSER] [-pw BASICAUTHPW] [-w MD_WORKERS]
 
 Removes images on a docker registry (v2).
 
 optional arguments:
   -h, --help            show this help message and exit
-  -v, --verbose         The verbosity level.
+  -v, --verbose         The verbosity level. Increase verbosity by multiple
+                        usage, e.g. -vvv .
   -r REGISTRY, --registry REGISTRY
                         The registry server to connect to, e.g.
                         http://1.2.3.4:5000
@@ -66,14 +68,21 @@ optional arguments:
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
   -i, --ignore-ref-tags
-                        Ignore a digest, if it is referenced by multiple tags.
-                        ATTENTION: the default if False!
+                        Ignore a digest if it is referenced multiple times in
+                        the whole registry server. In this case, a list of all
+                        repositories and their images will be retrieved which
+                        can be time and memory consuming. ATTENTION: the
+                        default is False so an image will be deleted even it
+                        is referenced multiple times.
   -u BASICAUTHUSER, --basicauth-user BASICAUTHUSER
                         The username, if the registry is protected with basic
                         auth
   -pw BASICAUTHPW, --basicauth-pw BASICAUTHPW
                         The password, if the registry is protected with basic
                         auth
+  -w MD_WORKERS, --metadata-workers MD_WORKERS
+                        Parallel workers to retrieve image metadata. Default
+                        value is 6.
 
 ```
 

@@ -9,8 +9,13 @@ from urlparse import urlparse
 import json
 import collections
 from requests.auth import HTTPBasicAuth
+from multiprocessing import Manager, Process, Pool, current_process
+from itertools import islice
+from functools import partial
 
-__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, Kevin Krummenauer <kevin@whiledo.de>'
+__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, ' \
+             'Kevin Krummenauer <kevin@whiledo.de>', \
+             'Marvin becker <mail@derwebcoder.de>'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2017
@@ -31,28 +36,38 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Removes images on a docker registry (v2).',
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help='The verbosity level.')
-    parser.add_argument('-r', '--registry', help="The registry server to connect to, e.g. http://1.2.3.4:5000", required=True)
+                        help='The verbosity level. Increase verbosity by multiple usage, e.g. -vvv .')
+    parser.add_argument('-r', '--registry', help="The registry server to connect to, e.g. http://1.2.3.4:5000",
+                        required=True)
     parser.add_argument('-p', '--proxy', help="Use system level proxy settings accessing registry server if set. "
                                               "By default, the registry server will be accessed without a "
                                               " proxy.", default=False, action='store_true')
-    parser.add_argument('-y', '--yes', '--assume-yes', help="If set no user action will appear and all questions will "
-                                              "be answered with YES", default=False, action='store_true', dest="assumeyes")
+    parser.add_argument('-y', '--yes', '--assume-yes', help="If set no user action will appear and all questions "
+                                                            "will be answered with YES", default=False,
+                        action='store_true', dest="assumeyes")
     parser.add_argument('-q', '--quiet', help="[deprecated] If set no user action will appear and all questions will "
                                               "be answered with YES", default=False, action='store_true')
     parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up")
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
-                                                   "for the given repo.",
-                        type=int)
+                                                   "for the given repo.", type=int)
     parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
                                                   "how many images should be kept.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
                                                "TLS is used in the registry server.", default=None)
-    parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest, if it is referenced by multiple tags. "
-                                                        "ATTENTION: the default if False!",
+    parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest if it is referenced multiple times "
+                                                        "in the whole registry server. In this case, a list of all "
+                                                        "repositories and their images will be retrieved which can be "
+                                                        "time and memory consuming. "
+                                                        "ATTENTION: the default is False so an image will be deleted "
+                                                        "even it is referenced multiple times.",
                         default=False, action='store_true', dest='ignoretag')
-    parser.add_argument('-u', '--basicauth-user', help="The username, if the registry is protected with basic auth", dest='basicauthuser')
-    parser.add_argument('-pw', '--basicauth-pw', help="The password, if the registry is protected with basic auth", dest='basicauthpw')
+    parser.add_argument('-u', '--basicauth-user', help="The username, if the registry is protected with basic auth",
+                        dest='basicauthuser')
+    parser.add_argument('-pw', '--basicauth-pw', help="The password, if the registry is protected with basic auth",
+                        dest='basicauthpw')
+    parser.add_argument('-w', '--metadata-workers', help="Parallel workers to retrieve image metadata. "
+                                                         "Default value is 6.",
+                        default=6, type=int, dest='md_workers')
 
     args = parser.parse_args()
 
@@ -164,6 +179,7 @@ def is_v2_registry(verbose, regserver, cacert=None):
         print "Found a v2 repo but return code is ", check_result.status_code
         return False
 
+
 def generate_request_headers(api_version=2):
     if api_version == 1:
         accept_string = 'application/vnd.docker.distribution.manifest.v1+json'
@@ -172,11 +188,13 @@ def generate_request_headers(api_version=2):
     headers = {'Accept': accept_string}
     return headers
 
+
 def get_auth():
     if (args.basicauthuser is not None) and (args.basicauthpw is not None):
         return HTTPBasicAuth(args.basicauthuser, args.basicauthpw)
     else:
         return None    
+
 
 def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     """
@@ -260,50 +278,67 @@ def delete_manifest(verbose, regserver, repository, cur_digest, cacert=None):
         print "Deleted manifest with digest", cur_digest
 
 
-def deletion_digests(verbose, regserver, repository, delete_tags, ignore, cacert):
+def deletion_digests(verbose, del_tags, digests_counts, ignore):
     """
-    High level method to delete tags from a repositroy.
+    High level method to retrieve digests to be deleted from a repository, based on tags.
 
     :param verbose: verbosity level
-    :param regserver: the URL of the reg server
-    :param repository: the repository name
-    :param delete_tags: the tags which has to be deleted
-    :param ignore: ignore tags if their digests are referenced multiple times
-    :param cacert: the path to a cacert file
+    :param del_tags The tags to be deleted of this repository
+    :param digests_counts A dict containing all digest and how often they occur
+    :param ignore: ignore tags if their digests are referenced multiple times (occurrence > 1)
+    :return The list of digests which have to be deleted
     """
 
     deletion_digests = []
-    all_digests = []
 
-    for currenttag, _ in delete_tags:
-        digest = get_digest_by_tag(verbose, regserver, repository, currenttag, cacert)
-        if verbose > 1:
-            print "Found digest {0} for tag {1}".format(digest, currenttag)
-        all_digests.append(digest)
-
-    diggests_occurences = collections.Counter(all_digests)
-    digests_counts = diggests_occurences.items()
-
-    for dig, count in digests_counts:
-        if verbose > 1:
-            print "Digest: {0}, count: {1}".format(dig, count)
-
-        if ignore is True and count > 1:
-            print "Ignoring digest {0} as it is referenced multiple times!".format(dig)
+    for tag, data in del_tags.items():
+        if ignore is True and digests_counts[data['digest']] > 1:
+            if verbose > 0:
+                print "Ignoring digest {0} as it is referenced multiple times!".format(data['digest'])
         else:
-            deletion_digests.append(dig)
-
-    if verbose > 1:
-        print "Digests to be deleted:", deletion_digests
+            deletion_digests.append(data['digest'])
 
     return deletion_digests
 
 
-def create_repo_list(cmd_args):
+def get_all_repos(verbose, regserver, cacert=None):
+    """
+    A method to retrieve a list of all repositories on the registry server.
+    :param verbose: verbosity level
+    :param regserver:  The registry server
+    :param cacert: the path to a cacert file
+    :return: A list with all repositories
+    """
+    req_url = regserver + "_catalog"
+    if verbose > 1:
+        print "Will use URL {0} to retrieve a list of all repositories:".format(req_url)
+    repos_result = requests.get(req_url, verify=cacert, auth=get_auth())
+    repos_status = repos_result.status_code
+    if args.verbose > 2:
+        print "Get catalog result is:", repos_status
+
+    # check the return code and exit if not OK
+    if repos_status != requests.codes.ok:
+        print "The tags could not be retrieved due to error:", repos_status
+        if args.verbose > 0:
+            print repos_result
+        sys.exit(2)
+    repos_result_json = repos_result.json()
+
+    repos_all = repos_result_json['repositories']
+    if verbose > 1:
+        print "Found repos: {0} ".format(repos_all)
+
+    return repos_all
+
+
+def create_repo_list(cmd_args, regserver):
     """
     Builds up a dict of repositories which have to be cleaned up and how many
     images have to be kept.
+    If the ignoreflag is set, a list of all repositories will be retrieved.
 
+    :param regserver: The registry server
     :param cmd_args: the command line arguments
     :return: A dict in the format repositoryname : amount of images to be kept
              and a list of the repository names
@@ -329,25 +364,55 @@ def create_repo_list(cmd_args):
         print "These repos will be processed:"
         print found_repos_counts
 
-    return found_repos_counts, found_repos_counts.keys()
+    if cmd_args.ignoretag is True:
+        repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
+    else:
+        repos = found_repos_counts.keys()
+
+    return found_repos_counts, repos
+
+def retrieve_metadata(tag, verbose, regserver, repo, managed_tags_date_digests,
+                      managed_digests, cacert):
+
+    if verbose > 2:
+        print "Processing in", current_process()
+
+    metadata_request = regserver + repo + "//manifests/" + tag
+    metadata_header = {'Accept': 'application/vnd.docker.distribution.manifest.v1+json'}
+    metadata = requests.get(metadata_request, headers=metadata_header, verify=cacert,
+                            auth=get_auth()).json()
+
+    creation_date = json.loads(metadata['history'][0]['v1Compatibility'])['created']
+    digest = get_digest_by_tag(verbose, regserver, repo, tag, cacert)
+    managed_tags_date_digests[tag] = {'date': creation_date, 'digest': digest}
+    managed_digests.append(digest)
+
+    if verbose > 2:
+        print "Added {0} to tag {1} on repo {2}".format(managed_tags_date_digests[tag], tag, repo)
+
+    return managed_tags_date_digests, managed_digests
 
 
-def get_deletiontags(cmd_args, reg_server, reponame, repo_count, cacert=None):
+def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md_workers, cacert=None):
     """
-    Returns a dict containing a list of the tags which could be deleted due
-    to name and date.
-
-    :param cmd_args: the command line arguments
-    :param reg_server: regserver: the URL of the reg server
-    :param reponame: the repository name
-    :param repo_count: amount of tags to be kept in repository
-    :param cacert: the path to a cacert file
-    :return: a dict of tags to be deleted and the date then they are created
+        Retrieves all Tags, the creation date of the layer the tag point to and digest of the layer.
+        
+    :param verbose: The verbosity level
+    :param regserver: The registry server
+    :param repo: The repository name
+    :param results: A managed dict which is used to return a dict containing the tag, date and digest
+    :param digests: A managed list which contains a list of all found digests, used to check for multiple usage
+    :param md_workers: Ammount of parallel workers to retrieve metadata
+    :param cacert: The path to the certificate file
+    :return: Returns using the managed collections results and digests
     """
-    deletion_tags = {}
-    req_url = reg_server + reponame + "/tags/list"
-    if cmd_args.verbose > 1:
-        print "Will use following URL to retirve tags:", req_url
+    manager = Manager()
+    managed_tags_date_digests = manager.dict()
+    pool = Pool(processes=md_workers)
+
+    req_url = regserver + repo + "/tags/list"
+    if verbose > 1:
+        print "Will use URL {0} to retrieve tags for repo {1}:".format(req_url, repo)
     tags_result = requests.get(req_url, verify=cacert, auth=get_auth())
     tags_status = tags_result.status_code
     if args.verbose > 2:
@@ -361,91 +426,181 @@ def get_deletiontags(cmd_args, reg_server, reponame, repo_count, cacert=None):
     tags_result_json = tags_result.json()
 
     tags_all = tags_result_json['tags']
-    if cmd_args.verbose > 1:
-        print "Found tags for repo {0}: {1} ".format(reponame, tags_all)
-    tag_dates = {}
+    if verbose > 1:
+        print "Found tags for repo {0}: {1} ".format(repo, tags_all)
+
     if tags_all is None:
         ammount_tags = 0
     else:
         ammount_tags = len(tags_all)
-    if cmd_args.verbose > 2:
+    if verbose > 2:
         print "ammount_tags : ", ammount_tags
-        print "repo_count : ", repo_count
-    if ammount_tags > repo_count:
-        if cmd_args.verbose > 0:
-            print "Retrieving metada for repository ", reponame
-        for key in tags_all:
-            metadata_request = reg_server + reponame + "//manifests/" + key
-            metadata_header = {'Accept': 'application/vnd.docker.distribution.manifest.v1+json'}
-            metadata = requests.get(metadata_request, headers=metadata_header, verify=cacert, auth=get_auth()).json()
-            # pick the latest history entry and grab the creation date of the image
-            # be aware that is NOT the tagging date but image creation!
-            tag_dates[key] = json.loads(metadata['history'][0]['v1Compatibility'])['created']
-        sorted_tags = sorted(tag_dates.iteritems(), key=lambda (k, v): (v, k), reverse=True)
-        deletion_tags = sorted_tags[repo_count:]
-        if cmd_args.verbose > 2:
-            print
-            for tag_tag, tag_date in deletion_tags:
-                print "Tag {0} created on {1} ".format(tag_tag, tag_date)
+    if verbose > 0:
+        print "Retrieving metada for repository ", repo
+
+    funcpart = partial(retrieve_metadata, verbose=verbose, regserver=regserver, repo=repo,
+                       managed_tags_date_digests=managed_tags_date_digests,
+                       managed_digests=digests, cacert=cacert)
+    pool.map(funcpart, tags_all)
+
+    # convert managed dict to a "normal dict" and put it into the other managed dict...
+    # Feels so unpythonic, should rewrite the stuff
+    # TODO make this more pythonic
+    tags_date_digests = {}
+    for (k, v) in managed_tags_date_digests.items():
+        tags_date_digests[k] = v
+
+    results[repo] = tags_date_digests
+
+
+def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cacert=None):
+    """
+    Retrieve all tags and finally digests for all repositories.
+    
+    :param verbose: verbosity level
+    :param regserver: the URL of the reg server
+    :param repositories: the list of repositories to be cleaned up 
+    :param cacert: the path to a cacert file
+    :return: a nested dict containing all repos and for each repo the list of all tags and their digests. 
+    """
+
+    result = {}
+    manager = Manager()
+    repos_tags_digest = manager.dict()
+    managed_digests = manager.list()
+    procs = []
+
+    print "Retrieving tags and digests. Be patient, this can take a little bit time."
+
+    for repo in repositories:
+        if verbose > 0:
+            print "Starting procs for {0}".format(repo)
+
+        # start a process to retrieve the needed data
+        proc = Process(target=get_tags_dates_digests_byrepo, args=(verbose, regserver, repo, repos_tags_digest,
+                                                                   managed_digests, md_workers, cacert))
+        procs.append(proc)
+        proc.start()
+
+    for proc in procs:
+        if verbose > 1:
+            print "Waiting for {0} to be finished.".format(proc)
+        proc.join()
+
+    for repo in repositories:
+        if verbose > 0:
+            print "Retrieving results..."
+        result[repo] = repos_tags_digest[repo]
+
+    return result, managed_digests
+
+
+def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
+    """
+    Returns a dict containing a list of the tags which could be deleted due
+    to name and date.
+
+    :param tags_dates_digests: A dict containing image tags, their corresponding digest and the layer creation date 
+    :param verbose: The verbosity level
+    :param repo: the repository name
+    :param repo_count: amount of tags to be kept in repository
+    :return: a dict of tags to be deleted, their digest and the date then they are created
+    """
+
+    all_tags = collections.OrderedDict(sorted(tags_dates_digests.iteritems(), key=lambda x: x[1]['date']))
+    deletion_tags = {}
+
+    if verbose > 3:
+        print (json.dumps(all_tags, indent=2))
+        # for (k, v) in all_tags.iteritems():
+
+    if all_tags is None:
+        ammount_tags = 0
     else:
-        if cmd_args.verbose > 0:
-            print "Skipping because not found images which can be deleted."
+        ammount_tags = len(all_tags)
+
+    if verbose > 1:
+        print "Repo {0}: ammount_tags : {1}; repo_count: {2}".format(repo, ammount_tags, repo_count)
+
+    if ammount_tags > repo_count:
+        deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
+        if verbose > 1:
+            print
+            print "Deletion candidates for repo {0}".format(repo)
+            print (json.dumps(deletion_tags, indent=2))
+    else:
+        if verbose > 0:
+            print "Skipping deletion in repo {0} because not enough images.".format(repo)
+
     return deletion_tags
 
 # >>>>>>>>>>>>>>>> MAIN STUFF
 
-args = parse_arguments()
+if __name__ == '__main__':
 
-reg_server_api = args.registry + "/v2/"
+    args = parse_arguments()
 
-if args.proxy is False:
-    if args.verbose > 1:
-        print "Will exclude registryserver location from proxy:", urlparse(args.registry).netloc
-    os.environ['no_proxy'] = urlparse(args.registry).netloc
+    reg_server_api = args.registry + "/v2/"
 
-# initially check if we've a v2 registry server
-if is_v2_registry(args.verbose, reg_server_api, args.cacert) is False:
-    print "Exiting, none V2 registry."
-    sys.exit(1)
+    if args.proxy is False:
+        if args.verbose > 1:
+            print "Will exclude registryserver location from proxy:", urlparse(args.registry).netloc
+        os.environ['no_proxy'] = urlparse(args.registry).netloc
 
-repos_counts, repos = create_repo_list(args)
+    # initially check if we've a v2 registry server
+    if is_v2_registry(args.verbose, reg_server_api, args.cacert) is False:
+        print "Exiting, none V2 registry."
+        sys.exit(1)
 
-x = 0
-repo_del_tags = {}
-repo_del_digests = {}
-for repo, count in repos_counts.iteritems():
-    x += 1
-    update_progress(x, len(repos_counts))
-    if args.verbose > 0:
+    repos_counts, repos = create_repo_list(args, reg_server_api)
+
+    x = 0
+
+    repo_tags_dates_digest, all_digests = get_all_tags_dates_digests(args.verbose, reg_server_api, repos,
+                                                                     args.md_workers, args.cacert)
+
+    if args.verbose > 2:
+        print "List of all repos, tags, their creation dates and their digests:"
+        print(json.dumps(repo_tags_dates_digest, indent=2))
+        print all_digests
+
+    diggests_occurrences = collections.Counter(all_digests)
+    digests_counts = dict(diggests_occurrences)
+
+    repo_del_tags = {}
+    repo_del_digests = {}
+    for repo, count in repos_counts.iteritems():
+        x += 1
+        update_progress(x, len(repos_counts))
+        if args.verbose > 0:
+            print
+            print "will delete repo {0} and keep {1} images.".format(repo, count)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count)
+
+        if len(del_tags) > 0:
+            repo_del_tags[repo] = del_tags
+            repo_del_digests[repo] = set(deletion_digests(args.verbose, del_tags, digests_counts, args.ignoretag))
+
+    answer = True
+    if args.assumeyes is False and args.quiet is False and len(repo_del_digests) > 0:
         print
-        print "will delete repo {0} and keep {1} images.".format(repo, count)
-    del_tags = get_deletiontags(args, reg_server_api, repo, count, args.cacert)
-    if len(del_tags) > 0:
-        repo_del_tags[repo] = del_tags
-        repo_del_digests[repo] = deletion_digests(args.verbose, reg_server_api, repo, del_tags, args.ignoretag,
-                                                  args.cacert)
+        print "Repos and according digests to be deleted:"
+        for repo, del_digests in repo_del_digests.iteritems():
+            print "Repository: ", repo
+            for digest in del_digests:
+                print "     {0}".format(digest)
+        answer = query_yes_no("Do you realy want to delete them?")
 
-answer = True
-if args.assumeyes is False and args.quiet is False and len(repo_del_digests) > 0:
+    if answer is True and len(repo_del_digests) > 0:
+        print "Deleting!"
+        for repo, del_digests in repo_del_digests.iteritems():
+            for digest in del_digests:
+                print "Deleting ", digest
+                delete_manifest(args.verbose, reg_server_api, repo, digest, args.cacert)
+    else:
+        print "Aborted by user or nothing to delete."
+        sys.exit(1)
+
     print
-    print "Repos and according digests to be deleted:"
-    for repo, del_digests in repo_del_digests.iteritems():
-        print "Repository: ", repo
-        for digest in del_digests:
-            print "     {0}".format(digest)
-    answer = query_yes_no("Do you realy want to delete them?")
-
-if answer is True and len(repo_del_digests) > 0:
-    print "Deleting!"
-    for repo, del_digests in repo_del_digests.iteritems():
-        for digest in del_digests:
-            # delete_tag(args.verbose, reg_server_api, repo, tag, args.cacert)
-            print "Deleting ", digest
-            delete_manifest(args.verbose, reg_server_api, repo, digest, args.cacert)
-else:
-    print "Aborted by user or nothing to delete."
-    sys.exit(1)
-
-print
-print "Finished"
-sys.exit(0)
+    print "Finished"
+    sys.exit(0)
