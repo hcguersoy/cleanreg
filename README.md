@@ -20,7 +20,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## Prerequisites and supported Plattform
 
-This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. The latest used Docker Registry was version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1).
+This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. It is developed against Docker Registry version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1), but tested against [2.6.1](https://github.com/docker/distribution/releases/tag/v2.6.1) and *latest* (see [https://hub.docker.com/r/library/registry/](https://hub.docker.com/r/library/registry/)).
 
 You need to install the Python module *requests*:
 
@@ -89,7 +89,7 @@ optional arguments:
 In addition, you can obtain the public docker image to run it in a container:
 
 ```
-docker run --rm hcguersoy/cleanreg:v0.4
+docker run --rm hcguersoy/cleanreg:v0.5.0
 ```
 
 The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
@@ -98,13 +98,15 @@ The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https:/
 
 ## Examples
 
+**Attention:** It is strongly recommended that you use the *-i* flag even it is more time and memory consuming. If not you can delete images / layers which you not wanted to delete because registry itself doesn't check if a digest is referenced by multiple tags!
+
 Cleaning up a single repository called mysql on registry server 192.168.56.2:5000 and keeping 5 of the latest images:
 
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5
 ```
 Be aware that you don't keep here the five last tags but digests/images. As a digest can be associated with multiple tags this can result in deletion of images which you not intended in!
-To be secure use the `-i` flag:
+Again: to be secure use the `-i` flag:
 
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5 -i
@@ -112,11 +114,17 @@ To be secure use the `-i` flag:
 
 Same as above but ignore images which are associated with multiple tags.
 
+```
+./cleanreg.py -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
+```
+
+If you have a very large registry and enough bandwidth you can increase the parallel workers to retrieve the image metadata. The default is *6*. Be aware that you can generate a *DoS* on your registry server by increasing to much.
+
 
 Cleaning up multiple repositories defined in a configuration file:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf
+./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -i
 ```
 The configuration file has the format `<repository name> <images to keep>`. An example file can be found in the repository.
 
@@ -124,7 +132,7 @@ The configuration file has the format `<repository name> <images to keep>`. An e
 If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
 
 ```
-docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.conf hcguersoy/cleanreg:<version> -r  http://192.168.56.2:5000 -f cleanreg-example.conf
+docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.conf hcguersoy/cleanreg:<version> -r  http://192.168.56.2:5000 -f cleanreg-example.conf -i
 ```
 
 There is a simple script added to create multiple image tags (based on `busybox`) on your registry server.
@@ -132,7 +140,7 @@ There is a simple script added to create multiple image tags (based on `busybox`
 If you have installed a *semi secure* registry server using TLS and self signed certificates you have to provide the path to the CA certificate file:
 
 ```
-./cleanreg.py -r https://192.168.56.3:5000 -c /my/certifacates/ca.pem -f cleanreg-example.conf
+./cleanreg.py -r https://192.168.56.3:5000 -c /my/certifacates/ca.pem -f cleanreg-example.conf -i
 ```
 
 If you run *cleanreg* in a container you should not forget to mount the certificate file into the container like the configuration file above.
