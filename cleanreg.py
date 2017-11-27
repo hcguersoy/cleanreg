@@ -364,8 +364,16 @@ def create_repo_list(cmd_args, regserver):
         print "These repos will be processed:"
         print found_repos_counts
 
+    all_registry_repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
+
+    for repo in found_repos_counts.keys():
+        if repo not in all_registry_repos:
+            del found_repos_counts[repo]
+            if cmd_args.verbose > 0:
+                print "Skipping repo {0} because it is not in the catalog.".format(repo)
+
     if cmd_args.ignoretag is True:
-        repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
+        repos = all_registry_repos
     else:
         repos = found_repos_counts.keys()
 
