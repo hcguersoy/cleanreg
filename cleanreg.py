@@ -356,10 +356,14 @@ def create_repo_list(cmd_args, regserver):
         found_repos_counts = {}
         with open(cmd_args.reposfile) as repoFile:
             for line in repoFile:
-                if cmd_args.verbose > 2:
-                    print "Import line ", line
-                (reponame, keep) = line.split()
-                found_repos_counts[reponame] = int(keep)
+                line = line.split('#', 1)[0]
+                line = line.strip()
+                if line:
+                    if cmd_args.verbose > 2:
+                        print "Import line ", line
+                    (reponame, keep) = line.split()
+                    found_repos_counts[reponame] = int(keep)
+                    
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
         print found_repos_counts
