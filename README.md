@@ -58,9 +58,14 @@ optional arguments:
                         questions will be answered with YES
   -n REPONAME, --reponame REPONAME
                         The name of the repo which should be cleaned up
+  -cf, --clean-full-catalog
+                        If set all repos of the registry will be cleaned up,
+                        keeping the amount of images specified in -k option. 
+                        The amount for each repo can be overridden in the repofile (-f).
   -k KEEPIMAGES, --keepimages KEEPIMAGES
                         Amount of images (not tags!) which should be kept for
-                        the given repo.
+                        the given repo  (if -n is set) or for each repo of the 
+                        registry (if -cf is set).
   -f REPOSFILE, --reposfile REPOSFILE
                         A file containing the list of Repositories and how
                         many images should be kept.
@@ -121,12 +126,27 @@ Same as above but ignore images which are associated with multiple tags.
 If you have a very large registry and enough bandwidth you can increase the parallel workers to retrieve the image metadata. The default is *6*. Be aware that you can generate a *DoS* on your registry server by increasing to much.
 
 
+Cleaning up all repositories of the registry:
+
+```
+./cleanreg.py -r http://192.168.56.2:5000 -cf -k 5 -i
+```
+This will clean up all repositories, keeping 5 images per repository.
+
+
 Cleaning up multiple repositories defined in a configuration file:
 
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -i
 ```
 The configuration file has the format `<repository name> <images to keep>`. An example file can be found in the repository.
+
+The configuration file can be used together with the clean-full-catalog option:
+
+```
+./cleanreg.py -r http://192.168.56.2:5000 -cf -k 5 -f cleanreg-example.conf -i
+```
+This will clean the repositories with images to keep as defined in the configuration file and it will additionally clean all other repositories of the registry, keeping 5 images per repository.
 
 
 If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
