@@ -25,3 +25,9 @@ sleep 5
 runTestFile simple_clean.sh 2.6.1
 sleep 5
 runTestFile simple_clean.sh latest
+
+sleep 5
+runTestFile clean_full_catalog.sh 2.6.1
+
+sleep 5
+runTestFile cleanreg_config_check.sh 2.6.1
