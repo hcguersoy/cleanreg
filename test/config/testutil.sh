@@ -1,7 +1,12 @@
 #!/bin/bash
 
+if [[ -z $CLEANREG_WORKSPACE ]]; then
+    echo "Workspace env variable not set. Expected env variable CLEANREG_WORKSPACE=<directory of cleanreg.py>"  
+    exit 1 
+fi
+
 #Read directoryname of this script
-DIRNAME=$(realpath $(dirname $(echo "${BASH_SOURCE[@]}[0]" | awk '{print $1;}')))
+DIRNAME=$CLEANREG_WORKSPACE/test/config/
 DOCKERFILEPATH="$DIRNAME/docker-registry"
 #REGISTRYDATA="$DIRNAME/registrydata"
 
@@ -13,17 +18,27 @@ DOCKERFILEPATH="$DIRNAME/docker-registry"
 #   None
 #######################################
 function createCleanregImage {
-   docker build -t cleanreg $(realpath $DIRNAME/../..)
+   docker build -t cleanreg $CLEANREG_WORKSPACE
 }
 
 #######################################
-# Runs cleanreg on localhost:5000
+# Runs cleanreg on localhost:5000 inside a Docker container
 # Globals:
 #   None
 # Arguments:
 #   Arguments will be passed to cleanreg
 function runCleanreg {
-   docker run --rm -it --net=host -v $(pwd):/data:ro cleanreg --assume-yes -r http://localhost:5000 -v $@
+   docker run --rm -it --net=host cleanreg --assume-yes -r http://localhost:5000 -v $@
+}
+
+#######################################
+# Runs cleanreg on localhost:5000 locally as pythonscript
+# Globals:
+#   None
+# Arguments:
+#   Arguments will be passed to cleanreg
+function runCleanregPython {
+   python $CLEANREG_WORKSPACE/cleanreg.py --assume-yes -r http://localhost:5000 -v $@
 }
 
 #######################################

@@ -44,7 +44,7 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
    assertImageExists "mongo" 2
 
    # setup conf file
-   tee test.conf <<EOF > /dev/null
+   tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
 consul 20
 elasticsearch 1
 dummybox 10 
@@ -53,7 +53,7 @@ EOF
 
    # run cleanreg with --clean-full-catalog -k 2
    # keeping 2 images of alpine and mysql, because they are not in the test.conf
-   runCleanreg -f /data/test.conf -vvv --clean-full-catalog -k 2
+   runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2
    
    assertImageExists "consul" 1
    assertImageExists "consul" 2
@@ -75,7 +75,6 @@ EOF
    assertImageNotExists "mongo" 1
    assertImageExists "mongo" 2
 
-   rm test.conf
 }
 
 

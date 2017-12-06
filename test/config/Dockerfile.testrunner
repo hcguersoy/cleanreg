@@ -1,8 +1,7 @@
 #Image as build-environment
-FROM ubuntu:17.04
+FROM python:2.7
 
-RUN apt-get update && apt-get install -y \
-    curl
+RUN apt-get install -y curl
 
 #Download the Dockerclient, because the tests need docker. The docker socket will be mounted in the testrunner-container later
 RUN mkdir /setup \
@@ -10,5 +9,7 @@ RUN mkdir /setup \
  && curl https://get.docker.com/builds/Linux/i386/docker-latest.tgz -o /setup/docker.tgz \
  && tar -xvzf /setup/docker.tgz \
  && mv /setup/docker/docker /usr/bin/docker
+
+RUN pip install requests
 
 ENTRYPOINT ["/bin/bash", "-c"]
