@@ -11,6 +11,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
+* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thnks @kekru for his PR) 
 * v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
 * v0.4.1 - added `--assume-yes` and deprecated `--quiet` flag
 * v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
