@@ -48,8 +48,13 @@ def parse_arguments():
     parser.add_argument('-q', '--quiet', help="[deprecated] If set no user action will appear and all questions will "
                                               "be answered with YES", default=False, action='store_true')
     parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up")
+    parser.add_argument('-cf', '--clean-full-catalog', help="If set all repos of the registry will be cleaned up, "
+                                                            "keeping the amount of images specified in -k option. "
+                                                            "The amount for each repo can be overridden in the repofile (-f).",
+                                                            default=False, action='store_true', dest='clean_full_catalog')
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
-                                                   "for the given repo.", type=int)
+                                                   "for the given repo (if -n is set) or for each repo of the "
+                                                   "registry (if -cf is set).", type=int)
     parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
                                                   "how many images should be kept.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
@@ -74,18 +79,22 @@ def parse_arguments():
     # check if keepimages is set that it is not negative
     if (args.keepimages is not None) and (args.keepimages < 0):
         parser.error("[-k] has to be a positive integer!")
+    
+    # hackish mutually exclusive group
+    if bool(args.reponame) and bool(args.reposfile):
+        parser.error("[-n] and [-f] cant be used together")
 
     # hackish mutually exclusive group
-    if (args.reponame or (args.keepimages is not None)) and args.reposfile:
-        parser.error("[-n|-k] and [-f] cant be used together")
+    if bool(args.reponame) and bool(args.clean_full_catalog):
+        parser.error("[-n] and [-cf] cant be used together")
 
     # hackish dependent arguments
-    if bool(args.reponame) ^ (args.keepimages is not None):
-        parser.error("[-n] and [-k] has to be used together.")
+    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not None):
+        parser.error("[-n] or [-cf] have to be used together with [-k].")
 
     # hackish dependent arguments
-    if bool(args.reponame or (args.keepimages is not None)) is False and bool(args.reposfile) is False:
-        parser.error("[-n|-k] or [-f] has to be used!")
+    if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
+        parser.error("[-n|-k] or [-cf|-k] or [-f] has to be used!")
     return args
 
 
@@ -343,29 +352,48 @@ def create_repo_list(cmd_args, regserver):
     :return: A dict in the format repositoryname : amount of images to be kept
              and a list of the repository names
     """
-    if bool(cmd_args.reponame) and (cmd_args.keepimages is not None):
+    found_repos_counts = {}
+    all_registry_repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
+
+    if bool(cmd_args.reponame) is True:
         if cmd_args.verbose > 1:
             print "In single repo mode."
             print "Will keep {0} images from repo {1}".format(cmd_args.keepimages, cmd_args.reponame)
         found_repos_counts = {cmd_args.reponame: cmd_args.keepimages}
         if cmd_args.verbose > 2:
             print "repos_counts: ", found_repos_counts
-    else:
+    
+    if cmd_args.clean_full_catalog is True:
+        if cmd_args.verbose > 1:
+            print "Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages)
+        for repo in all_registry_repos:
+            found_repos_counts[repo] = cmd_args.keepimages
+            
+    if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
             print "Will read repo information from file {0}".format(cmd_args.reposfile)
-        found_repos_counts = {}
         with open(cmd_args.reposfile) as repoFile:
             for line in repoFile:
-                if cmd_args.verbose > 2:
-                    print "Import line ", line
-                (reponame, keep) = line.split()
-                found_repos_counts[reponame] = int(keep)
+                line = line.split('#', 1)[0]
+                line = line.strip()
+                if line:
+                    if cmd_args.verbose > 2:
+                        print "Import line ", line
+                    (reponame, keep) = line.split()
+                    found_repos_counts[reponame] = int(keep)
+
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
         print found_repos_counts
 
+    for repo in found_repos_counts.keys():
+        if repo not in all_registry_repos:
+            del found_repos_counts[repo]
+            if cmd_args.verbose > 1:
+                print "Skipping repo {0} because it is not in the catalog.".format(repo)
+
     if cmd_args.ignoretag is True:
-        repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
+        repos = all_registry_repos
     else:
         repos = found_repos_counts.keys()
 
