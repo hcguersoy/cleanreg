@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # coding=utf-8
-
 import sys
 import os
 import requests
 import argparse
 from urlparse import urlparse
+import re
 import json
 import collections
 from requests.auth import HTTPBasicAuth
+from datetime import datetime
 from multiprocessing import Manager, Process, Pool, current_process
 from itertools import islice
 from functools import partial
@@ -55,6 +56,8 @@ def parse_arguments():
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
                                                    "for the given repo (if -n is set) or for each repo of the "
                                                    "registry (if -cf is set).", type=int)
+    parser.add_argument('-re', '--regex', help="Image tags matching the regular expression will be kept")
+    parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: dd.mm.yyyy")
     parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
                                                   "how many images should be kept.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
@@ -523,7 +526,7 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
     return result, managed_digests
 
 
-def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
+def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date):
     """
     Returns a dict containing a list of the tags which could be deleted due
     to name and date.
@@ -532,6 +535,8 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
     :param verbose: The verbosity level
     :param repo: the repository name
     :param repo_count: amount of tags to be kept in repository
+    :param regex: Regular expression defining tags to keep
+    :param date: Keeps tags which were created since this date
     :return: a dict of tags to be deleted, their digest and the date then they are created
     """
 
@@ -552,6 +557,15 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
 
     if ammount_tags > repo_count:
         deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
+        if regex is not None:
+            deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not re.match(regex, k)}
+        if date is not None:
+            for tag in deletion_tags.keys():
+                tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
+                if tag_date >= date:
+                    del deletion_tags[tag]
+        print deletion_tags
+        #deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not deletion_tags[}
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
@@ -603,7 +617,7 @@ if __name__ == '__main__':
         if args.verbose > 0:
             print
             print "will delete repo {0} and keep {1} images.".format(repo, count)
-        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, args.regex, datetime.strptime(args.date, '%d.%m.%Y'))
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags
