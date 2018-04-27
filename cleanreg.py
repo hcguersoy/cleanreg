@@ -56,8 +56,8 @@ def parse_arguments():
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
                                                    "for the given repo (if -n is set) or for each repo of the "
                                                    "registry (if -cf is set).", type=int)
-    parser.add_argument('-re', '--regex', help="Image tags matching the regular expression will be kept")
-    parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: dd.mm.yyyy")
+    parser.add_argument('-re', '--regex', help="Image tags matching the regular expression will be kept", default=None)
+    parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: dd.mm.yyyy", default=None)
     parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
                                                   "how many images should be kept.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
@@ -560,9 +560,10 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
         if regex is not None:
             deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not re.match(regex, k)}
         if date is not None:
+            parsed_date = datetime.strptime(date, '%d.%m.%Y')
             for tag in deletion_tags.keys():
                 tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
-                if tag_date >= date:
+                if tag_date >= parsed_date:
                     del deletion_tags[tag]
         print deletion_tags
         #deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not deletion_tags[}
@@ -617,7 +618,7 @@ if __name__ == '__main__':
         if args.verbose > 0:
             print
             print "will delete repo {0} and keep {1} images.".format(repo, count)
-        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, args.regex, datetime.strptime(args.date, '%d.%m.%Y'))
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, args.regex, args.date)
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags
