@@ -37,8 +37,9 @@ Download the file *cleanreg.py* or clone this repository to a local directory.
 
 ```
 usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-q] [-n REPONAME]
-                   [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT] [-i]
-                   [-u BASICAUTHUSER] [-pw BASICAUTHPW] [-w MD_WORKERS]
+                   [-k KEEPIMAGES] [-re REGULAREXPRESSION] [-d DATE]
+                   [-f REPOSFILE] [-c CACERT] [-i] [-u BASICAUTHUSER]
+                   [-pw BASICAUTHPW] [-w MD_WORKERS]
 
 Removes images on a docker registry (v2).
 
@@ -67,6 +68,11 @@ optional arguments:
                         Amount of images (not tags!) which should be kept for
                         the given repo  (if -n is set) or for each repo of the 
                         registry (if -cf is set).
+  -re REGULAREXPRESSION, --regex REGULAREXPRESSION
+                        Image tags matching the regular expression will be kept
+  -d DATE, --date DATE
+                        Keep images which were created since this date.
+                        Format: dd.mm.yyyy
   -f REPOSFILE, --reposfile REPOSFILE
                         A file containing the list of Repositories and how
                         many images should be kept.
