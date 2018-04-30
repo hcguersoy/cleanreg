@@ -92,7 +92,7 @@ def parse_arguments():
         parser.error("[-n] and [-cf] cant be used together")
 
     # hackish dependent arguments
-    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not None):
+    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not None or args.regex is not None or args.date is not None):
         parser.error("[-n] or [-cf] have to be used together with [-k].")
 
     # hackish dependent arguments
@@ -551,6 +551,9 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
         ammount_tags = 0
     else:
         ammount_tags = len(all_tags)
+
+    if repo_count is None:
+        repo_count = 0
 
     if verbose > 1:
         print "Repo {0}: ammount_tags : {1}; repo_count: {2}".format(repo, ammount_tags, repo_count)
