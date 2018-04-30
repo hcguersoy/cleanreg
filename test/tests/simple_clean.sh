@@ -65,12 +65,33 @@ testCleanASingleRepoRegex() {
    assertImageExists "abc" 5
 
    #run cleanreg
-   runCleanreg -n abc -re 1 -i
+   runCleanreg -n abc -re 1\|2 -i
    assertImageExists "abc" 1
-   assertImageNotExists "abc" 2
+   assertImageExists "abc" 2
    assertImageNotExists "abc" 3
    assertImageNotExists "abc" 4
    assertImageNotExists "abc" 5
+}
+
+testCleanASingleRepoDate() {
+   startRegistry
+
+   #setup testdata
+   createTestdata "abc" 1 5
+   assertImageExists "abc" 1
+   assertImageExists "abc" 2
+   assertImageExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
+
+   #run cleanreg
+   runCleanreg -n abc -d date '+%d.%m.%y' -i
+   docker images
+   assertImageExists "abc" 1
+   assertImageExists "abc" 2
+   assertImageExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
 }
 
 testCleanASingleRepoRemoveAllImagesWithOneDigest() {
