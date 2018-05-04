@@ -346,7 +346,7 @@ def get_all_repos(verbose, regserver, cacert=None):
 
 def create_repo_list(cmd_args, regserver):
     """
-    Builds up a dict of repositories which have to be cleaned up and how many
+    Builds up a dict of repositories which have to be cleaned up and which
     images have to be kept.
     If the ignoreflag is set, a list of all repositories will be retrieved.
 
@@ -362,7 +362,16 @@ def create_repo_list(cmd_args, regserver):
         if cmd_args.verbose > 1:
             print "In single repo mode."
             print "Will keep {0} images from repo {1}".format(cmd_args.keepimages, cmd_args.reponame)
-        found_repos_counts = {cmd_args.reponame: cmd_args.keepimages}
+        found_repos_counts = {cmd_args.reponame: (0, ", ")}
+        if cmd_args.keep_images is not None:
+            (c, r, d) = found_repos_counts[cmd_args.reponame]
+            found_repos_counts[cmd_args.reponame] = (cmd_args.keep_images, r, d)
+        if cmd_args.regex is not None:
+            (c, r, d) = found_repos_counts[cmd_args.reponame]
+            found_repos_counts[cmd_args.reponame] = (c, cmd_args.regex, d)
+        if cmd_args.date is not None:
+            (c, r, d) = found_repos_counts[cmd_args.reponame]
+            found_repos_counts[cmd_args.reponame] = (c, r, cmd_args.date)
         if cmd_args.verbose > 2:
             print "repos_counts: ", found_repos_counts
     
@@ -382,8 +391,11 @@ def create_repo_list(cmd_args, regserver):
                 if line:
                     if cmd_args.verbose > 2:
                         print "Import line ", line
-                    (reponame, keep) = line.split()
-                    found_repos_counts[reponame] = int(keep)
+                    (reponame, keep, regex, date) = line.split()
+                    if keep != "_":
+                        found_repos_counts[reponame] = (int(keep), regex, date)
+                    else:
+                        found_repos_counts[reponame] = (0, regex, date)
 
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
@@ -560,9 +572,9 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
 
     if ammount_tags > repo_count:
         deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
-        if regex is not None:
+        if regex is not None and regex != "_":
             deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not re.match(regex, k)}
-        if date is not None:
+        if date is not None and date != "_":
             parsed_date = datetime.strptime(date, '%d.%m.%Y')
             for tag in deletion_tags.keys():
                 tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
@@ -615,13 +627,13 @@ if __name__ == '__main__':
 
     repo_del_tags = {}
     repo_del_digests = {}
-    for repo, count in repos_counts.iteritems():
+    for repo, (count, regex, date) in repos_counts.iteritems():
         x += 1
         update_progress(x, len(repos_counts))
         if args.verbose > 0:
             print
-            print "will delete repo {0} and keep {1} images.".format(repo, count)
-        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, args.regex, args.date)
+            print "will delete repo {0} and keep at least {1} images.".format(repo, count)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, regex, date)
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags
