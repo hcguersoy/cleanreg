@@ -362,10 +362,10 @@ def create_repo_list(cmd_args, regserver):
         if cmd_args.verbose > 1:
             print "In single repo mode."
             print "Will keep {0} images from repo {1}".format(cmd_args.keepimages, cmd_args.reponame)
-        found_repos_counts = {cmd_args.reponame: (0, ", ")}
-        if cmd_args.keep_images is not None:
+        found_repos_counts = {cmd_args.reponame: (0, "", "")}
+        if cmd_args.keepimages is not None:
             (c, r, d) = found_repos_counts[cmd_args.reponame]
-            found_repos_counts[cmd_args.reponame] = (cmd_args.keep_images, r, d)
+            found_repos_counts[cmd_args.reponame] = (cmd_args.keepimages, r, d)
         if cmd_args.regex is not None:
             (c, r, d) = found_repos_counts[cmd_args.reponame]
             found_repos_counts[cmd_args.reponame] = (c, cmd_args.regex, d)
