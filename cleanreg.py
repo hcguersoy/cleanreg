@@ -576,7 +576,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
 
     if ammount_tags > repo_count:
         deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
-        if regex is not None and regex != "_":
+        if regex is not None and regex != "_" and regex != "":
             deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not re.match(regex, k)}
         if date is not None and date != "_":
             parsed_date = datetime.strptime(date, '%d.%m.%Y')
