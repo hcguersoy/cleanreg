@@ -11,13 +11,13 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
-* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thnks @kekru for his PR) 
+* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thnks @kekru for his PR)
 * v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
 * v0.4.1 - added `--assume-yes` and deprecated `--quiet` flag
 * v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
-* v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag. 
+* v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag.
 * v0.2 - added support for registry server using self signed certificates
-* v0.1 - first version with basics 
+* v0.1 - first version with basics
 
 ## Prerequisites and supported Plattform
 
@@ -62,20 +62,26 @@ optional arguments:
                         The name of the repo which should be cleaned up
   -cf, --clean-full-catalog
                         If set all repos of the registry will be cleaned up,
-                        keeping the amount of images specified in -k option. 
-                        The amount for each repo can be overridden in the repofile (-f).
+                        considering the -k, -re and -d options.
+                        These can be overridden for each repo in the repofile (-f).
   -k KEEPIMAGES, --keepimages KEEPIMAGES
                         Amount of images (not tags!) which should be kept for
-                        the given repo  (if -n is set) or for each repo of the 
+                        the given repo  (if -n is set) or for each repo of the
                         registry (if -cf is set).
   -re REGULAREXPRESSION, --regex REGULAREXPRESSION
                         Image tags matching the regular expression will be kept
+                        for the given repo  (if -n is set) or for each repo of
+                        the registry (if -cf is set).
   -d DATE, --date DATE
-                        Keep images which were created since this date.
+                        Keeps images which were created since this date for
+                        the given repo  (if -n is set) or for each repo of the
+                        registry (if -cf is set).
                         Format: dd.mm.yyyy
   -f REPOSFILE, --reposfile REPOSFILE
-                        A file containing the list of Repositories and how
-                        many images should be kept.
+                        A file containing the list of Repositories and which
+                        images should be kept. Use 0 for -k and _ for -re as
+                        well as -d to ignore that option.
+                        Format: <repo> <KEEPIMAGES> <REGULAREXPRESSION> <DATE>
   -c CACERT, --cacert CACERT
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
@@ -127,6 +133,12 @@ Again: to be secure use the `-i` flag:
 Same as above but ignore images which are associated with multiple tags.
 
 ```
+./cleanreg.py -r http://192.168.56.2:5000 -n mysql -re .*release.* -d 01.01.2018 -k 5 -i
+```
+
+Same as above but images containing the word "release" as well as those created since 01.01.2018 but at least the 5 latest will be kept.
+
+```
 ./cleanreg.py -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
 ```
 
@@ -146,14 +158,14 @@ Cleaning up multiple repositories defined in a configuration file:
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -i
 ```
-The configuration file has the format `<repository name> <images to keep>`. An example file can be found in the repository.
+The configuration file has the format `<repository name> <number of images to keep> <regular expression> <date>`. An example file can be found in the repository.
 
 The configuration file can be used together with the clean-full-catalog option:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -cf -k 5 -f cleanreg-example.conf -i
+./cleanreg.py -r http://192.168.56.2:5000 -cf -d 01.01.2018 -f cleanreg-example.conf -i
 ```
-This will clean the repositories with images to keep as defined in the configuration file and it will additionally clean all other repositories of the registry, keeping 5 images per repository.
+This will clean the repositories with images to keep as defined in the configuration file and it will additionally clean all other repositories of the registry, keeping images per repository that were created since 01.01.2018.
 
 
 If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
@@ -206,7 +218,7 @@ Prerequisites:
 * Locally installed Docker engine (remote execution is not yet implemented; runs with Docker for MacOS fine)
 
 You can run all tests, with the *runAllTests.sh* script:
- 
+
 ```
 cd test
 ./runAllTests.sh
