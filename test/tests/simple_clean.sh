@@ -86,7 +86,6 @@ testCleanASingleRepoDate() {
 
    #run cleanreg
    runCleanreg -n abc -d date '+%d.%m.%y' -i
-   docker images
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3

@@ -82,6 +82,13 @@ def parse_arguments():
     # check if keepimages is set that it is not negative
     if (args.keepimages is not None) and (args.keepimages < 0):
         parser.error("[-k] has to be a positive integer!")
+
+    # check if date is valid
+    if args.date is not None:
+        try:
+            datetime.strptime(args.date, '%d.%m.%Y')
+        except ValueError:
+            parser.error("[-d] format should be DD.MM.YYYY")
     
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
@@ -93,7 +100,7 @@ def parse_arguments():
 
     # hackish dependent arguments
     if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not None or args.regex is not None or args.date is not None):
-        parser.error("[-n] or [-cf] have to be used together with [-k].")
+        parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-d].")
 
     # hackish dependent arguments
     if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
@@ -379,7 +386,7 @@ def create_repo_list(cmd_args, regserver):
         if cmd_args.verbose > 1:
             print "Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages)
         for repo in all_registry_repos:
-            found_repos_counts[repo] = cmd_args.keepimages
+            found_repos_counts[repo] = (cmd_args.keepimages, cmd_args.regex, cmd_args.date)
             
     if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
@@ -578,7 +585,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
         deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
         if regex is not None and regex != "_" and regex != "":
             deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not re.match(regex, k)}
-        if date is not None and date != "_":
+        if date is not None and date != "_" and date != "":
             parsed_date = datetime.strptime(date, '%d.%m.%Y')
             for tag in deletion_tags.keys():
                 tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
