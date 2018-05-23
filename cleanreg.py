@@ -488,11 +488,10 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
     if verbose > 0:
         print "Retrieving metada for repository ", repo
 
-    if tags_all is not None:
-        funcpart = partial(retrieve_metadata, verbose=verbose, regserver=regserver, repo=repo,
-                           managed_tags_date_digests=managed_tags_date_digests,
-                           managed_digests=digests, cacert=cacert)
-        pool.map(funcpart, tags_all)
+    funcpart = partial(retrieve_metadata, verbose=verbose, regserver=regserver, repo=repo,
+                       managed_tags_date_digests=managed_tags_date_digests,
+                       managed_digests=digests, cacert=cacert)
+    pool.map(funcpart, tags_all)
 
     # convert managed dict to a "normal dict" and put it into the other managed dict...
     # Feels so unpythonic, should rewrite the stuff
@@ -541,10 +540,7 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
     for repo in repositories:
         if verbose > 0:
             print "Retrieving results..."
-        if repo in repos_tags_digest:
-            result[repo] = repos_tags_digest[repo]
-        else:
-            print "Repo {0} seems to contain invalid tags which will be skipped.".format(repo)
+        result[repo] = repos_tags_digest[repo]
 
     return result, managed_digests
 
@@ -591,8 +587,6 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
                 tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
                 if tag_date >= parsed_date:
                     del deletion_tags[tag]
-        print deletion_tags
-        #deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not deletion_tags[}
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
@@ -644,9 +638,7 @@ if __name__ == '__main__':
         if args.verbose > 0:
             print
             print "will delete repo {0} and keep at least {1} images.".format(repo, count)
-        del_tags = {}
-        if repo in repo_tags_dates_digest:
-            del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, regex, date)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, regex, date)
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags

@@ -158,7 +158,7 @@ Cleaning up multiple repositories defined in a configuration file:
 ```
 ./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -i
 ```
-The configuration file has the format `<repository name> <number of images to keep> <regular expression> <date>`. An example file can be found in the repository.
+The configuration file has the format `<repository name> <number of images to keep> <regular expression> <date>`. An example file can be found in the repository. Use an underscore ("_") for any of the parameters as a wildcard.
 
 The configuration file can be used together with the clean-full-catalog option:
 
