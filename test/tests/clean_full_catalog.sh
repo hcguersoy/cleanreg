@@ -57,18 +57,18 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
 
    # setup conf file
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
-consul 20 _ _
-elasticsearch 1 _ _
-dummybox 10 _ _
-mongo 1 _ _
-postgres 0 _ `date +%d.%m.%Y`
-redis 0 2 _
+consul 20 _
+elasticsearch 1 _
+dummybox 10 _
+mongo 1 _
+postgres 0 `date +%d.%m.%Y`
+redis:2 0 _
 EOF
 
    # run cleanreg with --clean-full-catalog -k 2
    # keeping 2 images of alpine and mysql, because they are not in the test.conf
-   runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2 -re 2 -d `date +%d.%m.`$((`date +%Y`+1))
-   
+   runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2 -re -d `date +%d.%m.`$((`date +%Y`+1))
+
    assertImageExists "consul" 1
    assertImageExists "consul" 2
    assertImageExists "consul" 3
@@ -78,13 +78,13 @@ EOF
    assertImageExists "elasticsearch" 3
    
    assertImageNotExists "alpine" 1
-   assertImageExists "alpine" 2
+   assertImageNotExists "alpine" 2
    assertImageExists "alpine" 3
    assertImageExists "alpine" 4
 
    assertImageNotExists "mysql" 1
-   assertImageExists "mysql" 2
-   assertImageNotExists "mysql" 3
+   assertImageNotExists "mysql" 2
+   assertImageExists "mysql" 3
    assertImageExists "mysql" 4
    assertImageExists "mysql" 5
 
@@ -95,9 +95,9 @@ EOF
    assertImageExists "postgres" 2
    assertImageExists "postgres" 3
 
-   assertImageNotExists "redis" 1
-   assertImageExists "redis" 2
-   assertImageNotExists "redis" 3
+   assertImageExists "redis" 1
+   assertImageNotExists "redis" 2
+   assertImageExists "redis" 3
 
 }
 

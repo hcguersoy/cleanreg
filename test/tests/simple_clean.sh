@@ -65,7 +65,7 @@ testCleanASingleRepoRegex() {
    assertImageExists "abc" 5
 
    #run cleanreg
-   runCleanreg -n abc -re 1\|2 -i
+   runCleanreg -n abc:1\|2 -re  -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageNotExists "abc" 3

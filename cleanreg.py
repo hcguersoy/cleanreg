@@ -55,8 +55,9 @@ def parse_arguments():
                                                             default=False, action='store_true', dest='clean_full_catalog')
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
                                                    "for the given repo (if -n is set) or for each repo of the "
-                                                   "registry (if -cf is set).", type=int)
-    parser.add_argument('-re', '--regex', help="Image tags matching the regular expression will be kept", default=None)
+                                                   "registry (if -cf is set).", default=0, type=int)
+    parser.add_argument('-re', '--regex', help="Use a regular expression as a tagname", default=False,
+                        action='store_true', dest="regex")
     parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: dd.mm.yyyy", default=None)
     parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
                                                   "how many images should be kept.")
@@ -99,7 +100,7 @@ def parse_arguments():
         parser.error("[-n] and [-cf] cant be used together")
 
     # hackish dependent arguments
-    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not None or args.regex is not None or args.date is not None):
+    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.date is not None):
         parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-d].")
 
     # hackish dependent arguments
@@ -368,17 +369,15 @@ def create_repo_list(cmd_args, regserver):
     if bool(cmd_args.reponame) is True:
         if cmd_args.verbose > 1:
             print "In single repo mode."
-            print "Will keep {0} images from repo {1}".format(cmd_args.keepimages, cmd_args.reponame)
-        found_repos_counts = {cmd_args.reponame: (0, "", "")}
-        if cmd_args.keepimages is not None:
-            (c, r, d) = found_repos_counts[cmd_args.reponame]
-            found_repos_counts[cmd_args.reponame] = (cmd_args.keepimages, r, d)
-        if cmd_args.regex is not None:
-            (c, r, d) = found_repos_counts[cmd_args.reponame]
-            found_repos_counts[cmd_args.reponame] = (c, cmd_args.regex, d)
-        if cmd_args.date is not None:
-            (c, r, d) = found_repos_counts[cmd_args.reponame]
-            found_repos_counts[cmd_args.reponame] = (c, r, cmd_args.date)
+            print "Will keep matching images from repo {1}".format(cmd_args.reponame)
+
+        splittedNames = cmd_args.reponame.split(':')
+        repo = splittedNames[0]
+        tagname = ''
+        if len(splittedNames) == 2:
+            tagname = splittedNames[1]
+        found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.date)
+
         if cmd_args.verbose > 2:
             print "repos_counts: ", found_repos_counts
     
@@ -386,7 +385,12 @@ def create_repo_list(cmd_args, regserver):
         if cmd_args.verbose > 1:
             print "Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages)
         for repo in all_registry_repos:
-            found_repos_counts[repo] = (cmd_args.keepimages, cmd_args.regex, cmd_args.date)
+            splittedNames = repo.split(':')
+            repo = splittedNames[0]
+            tagname = ''
+            if len(splittedNames) == 2:
+                tagname = splittedNames[1]
+            found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.date)
             
     if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
@@ -398,11 +402,16 @@ def create_repo_list(cmd_args, regserver):
                 if line:
                     if cmd_args.verbose > 2:
                         print "Import line ", line
-                    (reponame, keep, regex, date) = line.split()
+                    (reponame, keep, date) = line.split()
+                    splittedNames = reponame.split(':')
+                    tagname = ''
+                    reponame = splittedNames[0]
+                    if len(splittedNames) == 2:
+                        tagname = splittedNames[1]
                     if keep != "_":
-                        found_repos_counts[reponame] = (int(keep), regex, date)
+                        found_repos_counts[reponame] = (int(keep), tagname, date)
                     else:
-                        found_repos_counts[reponame] = (0, regex, date)
+                        found_repos_counts[reponame] = (0, tagname, date)
 
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
@@ -545,7 +554,7 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
     return result, managed_digests
 
 
-def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date):
+def get_deletiontags(verbose, tags_dates_digests, repo, tagname, repo_count, regex, date):
     """
     Returns a dict containing a list of the tags which could be deleted due
     to name and date.
@@ -553,8 +562,9 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
     :param tags_dates_digests: A dict containing image tags, their corresponding digest and the layer creation date 
     :param verbose: The verbosity level
     :param repo: the repository name
+    :param tagname: tag of the repo
     :param repo_count: amount of tags to be kept in repository
-    :param regex: Regular expression defining tags to keep
+    :param regex: True if tagnames should be interpreted as regular expressions
     :param date: Keeps tags which were created since this date
     :return: a dict of tags to be deleted, their digest and the date then they are created
     """
@@ -577,16 +587,20 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count, regex, date)
     if verbose > 1:
         print "Repo {0}: ammount_tags : {1}; repo_count: {2}".format(repo, ammount_tags, repo_count)
 
-    if ammount_tags > repo_count:
-        deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
-        if regex is not None and regex != "_" and regex != "":
-            deletion_tags = {k: deletion_tags[k] for k in deletion_tags if not re.match(regex, k)}
+        deletion_tags = all_tags
+        if regex and tagname != "":
+            deletion_tags = {k: deletion_tags[k] for k in deletion_tags if re.match(tagname, k)}
+        elif not regex and tagname != "":
+            deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
         if date is not None and date != "_" and date != "":
             parsed_date = datetime.strptime(date, '%d.%m.%Y')
             for tag in deletion_tags.keys():
                 tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
                 if tag_date >= parsed_date:
                     del deletion_tags[tag]
+
+    if len(deletion_tags) > (ammount_tags - repo_count):
+        deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), len(deletion_tags) - (ammount_tags - repo_count)))
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
@@ -632,13 +646,13 @@ if __name__ == '__main__':
 
     repo_del_tags = {}
     repo_del_digests = {}
-    for repo, (count, regex, date) in repos_counts.iteritems():
+    for repo, (count, tagname, date) in repos_counts.iteritems():
         x += 1
         update_progress(x, len(repos_counts))
         if args.verbose > 0:
             print
             print "will delete repo {0} and keep at least {1} images.".format(repo, count)
-        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count, regex, date)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, tagname, count, args.regex, date)
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags
