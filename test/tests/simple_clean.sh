@@ -85,7 +85,7 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 5
 
    #run cleanreg
-   runCleanreg -n abc -d date '+%d.%m.%y' -i
+   runCleanreg -n abc -d `date '+%d.%m.%Y'` -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3
