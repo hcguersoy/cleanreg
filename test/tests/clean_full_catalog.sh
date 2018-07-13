@@ -61,7 +61,7 @@ consul 20 _
 elasticsearch 1 _
 dummybox 10 _
 mongo 1 _
-postgres 0 `date +%%Y%m%d`
+postgres 0 `date +%Y%m%d`
 redis:2 0 _
 EOF
 
@@ -84,7 +84,7 @@ EOF
 
    assertImageNotExists "mysql" 1
    assertImageNotExists "mysql" 2
-   assertImageExists "mysql" 3
+   assertImageNotExists "mysql" 3
    assertImageExists "mysql" 4
    assertImageExists "mysql" 5
 

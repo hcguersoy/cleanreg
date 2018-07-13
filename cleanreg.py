@@ -607,7 +607,10 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, repo_count, reg
                 del deletion_tags[tag]
 
     if len(deletion_tags) > (ammount_tags - repo_count):
-        deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), ammount_tags - repo_count))
+        if ammount_tags - repo_count < 0:
+            deletion_tags.clear()
+        else:
+            deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), ammount_tags - repo_count))
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
