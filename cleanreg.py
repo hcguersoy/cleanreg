@@ -92,7 +92,7 @@ def parse_arguments():
             try:
                 datetime.strptime(args.date, '%Y-%m-%d')
             except ValueError:
-                parser.error("[-d] format should be YYYYMMDD")
+                parser.error("[-d] format should be YYYYMMDD or YYYY-MM-DD")
     
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
@@ -104,7 +104,8 @@ def parse_arguments():
 
     # hackish dependent arguments
     if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.date is not None):
-        parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-d].")
+        if not (bool(args.reposfile) and args.regex):
+            parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-d].")
 
     # hackish dependent arguments
     if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
