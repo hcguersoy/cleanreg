@@ -1,0 +1,9 @@
+consul:
+  tag: OnlyThisTag
+  keepimages: 20
+  date: 2000-12-24
+elasticsearch:
+  keepimages: 20
+  date: 20000101
+dummybox:
+  keepimages: 0

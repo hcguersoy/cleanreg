@@ -49,7 +49,7 @@ def parse_arguments():
                         action='store_true', dest="assumeyes")
     parser.add_argument('-q', '--quiet', help="[deprecated] If set no user action will appear and all questions will "
                                               "be answered with YES", default=False, action='store_true')
-    parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up")
+    parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up. Tags are optional.")
     parser.add_argument('-cf', '--clean-full-catalog', help="If set all repos of the registry will be cleaned up, "
                                                             "keeping the amount of images specified in -k option. "
                                                             "The amount for each repo can be overridden in the repofile (-f).",
@@ -57,11 +57,11 @@ def parse_arguments():
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
                                                    "for the given repo (if -n is set) or for each repo of the "
                                                    "registry (if -cf is set).", default=0, type=int)
-    parser.add_argument('-re', '--regex', help="Use a regular expression as a tagname", default=False,
+    parser.add_argument('-re', '--regex', help="Interpret tagnames as regular expressions", default=False,
                         action='store_true', dest="regex")
-    parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: dd.mm.yyyy", default=None)
-    parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
-                                                  "how many images should be kept.")
+    parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: YYYYMMDD or YYYY-MM-DD", default=None)
+    parser.add_argument('-f', '--reposfile', help="A yaml file containing the list of Repositories with additional information "
+                                                  "regarding tags, dates and how many images to keep.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
                                                "TLS is used in the registry server.", default=None)
     parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest if it is referenced multiple times "
