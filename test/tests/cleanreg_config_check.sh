@@ -7,7 +7,7 @@ oneTimeSetUp() {
    createRegistryImages
    createCleanregImage
    startRegistry
-   echo "abc 2 `date +%Y%m%d`" > $CLEANREG_WORKSPACE/test.conf
+   echo "abc:\n    keepimages: 2\n    date: `date +%Y%m%d`" > $CLEANREG_WORKSPACE/test.conf
 }
 
 oneTimeTearDown() {

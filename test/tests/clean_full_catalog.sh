@@ -57,12 +57,20 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
 
    # setup conf file
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
-consul 20 _
-elasticsearch 1 _
-dummybox 10 _
-mongo 1 _
-postgres 0 `date +%Y%m%d`
-redis:2 0 _
+consol:
+    keepimages: 20
+elasticsearch:
+    keepimages: 1
+dummybox:
+    keepimages: 10
+mongo:
+    keepimages: 1
+postgres:
+    keepimages: 0
+    date: `date +%Y%m%d`
+redis:
+    tag: 2
+    keepimages: 0
 EOF
 
    # run cleanreg with --clean-full-catalog -k 2
