@@ -84,13 +84,29 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 4
    assertImageExists "abc" 5
 
-   #run cleanreg
-   runCleanreg -n abc -d `date '+%d.%m.%Y'` -i
+   #cleanreg with todays date sholdn't delete any images
+   runCleanreg -n abc -d `date '+%Y%m%d'` -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3
    assertImageExists "abc" 4
    assertImageExists "abc" 5
+
+   #same test with different date format
+   runCleanreg -n abc -d `date '+%Y-%m-%d'` -i
+   assertImageExists "abc" 1
+   assertImageExists "abc" 2
+   assertImageExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
+
+   #cleanreg with a date in the future should delete all images
+   runCleanreg -n abc -d $((`date +%Y`+1))`date +%m%d` -i
+   assertImageNotExists "abc" 1
+   assertImageNotExists "abc" 2
+   assertImageNotExists "abc" 3
+   assertImageNotExists "abc" 4
+   assertImageNotExists "abc" 5
 }
 
 testCleanASingleRepoRemoveAllImagesWithOneDigest() {

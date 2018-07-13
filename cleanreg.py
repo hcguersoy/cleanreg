@@ -87,9 +87,12 @@ def parse_arguments():
     # check if date is valid
     if args.date is not None:
         try:
-            datetime.strptime(args.date, '%d.%m.%Y')
+            datetime.strptime(args.date, '%Y%m%d')
         except ValueError:
-            parser.error("[-d] format should be DD.MM.YYYY")
+            try:
+                datetime.strptime(args.date, '%Y-%m-%d')
+            except ValueError:
+                parser.error("[-d] format should be YYYYMMDD")
     
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
@@ -369,7 +372,7 @@ def create_repo_list(cmd_args, regserver):
     if bool(cmd_args.reponame) is True:
         if cmd_args.verbose > 1:
             print "In single repo mode."
-            print "Will keep matching images from repo {1}".format(cmd_args.reponame)
+            print "Will keep matching images from repo {0}".format(cmd_args.reponame)
 
         splittedNames = cmd_args.reponame.split(':')
         repo = splittedNames[0]
@@ -593,8 +596,12 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, repo_count, reg
         elif not regex and tagname != "":
             deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
         if date is not None and date != "_" and date != "":
-            parsed_date = datetime.strptime(date, '%d.%m.%Y')
+            try:
+                parsed_date = datetime.strptime(date, '%Y%m%d')
+            except ValueError:
+                parsed_date =  datetime.strptime(date, '%Y-%m-%d')
             for tag in deletion_tags.keys():
+                print deletion_tags[tag]['date']
                 tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
                 if tag_date >= parsed_date:
                     del deletion_tags[tag]

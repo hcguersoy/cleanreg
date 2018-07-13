@@ -7,7 +7,7 @@ oneTimeSetUp() {
    createRegistryImages
    createCleanregImage
    startRegistry
-   echo "abc 2 regex `date +%d.%m.%y`" > $CLEANREG_WORKSPACE/test.conf
+   echo "abc 2 regex `date +%Y%m%d`" > $CLEANREG_WORKSPACE/test.conf
 }
 
 oneTimeTearDown() {
@@ -147,7 +147,7 @@ test_f_with_date_works() {
    assertImageExists "abc" 4
    assertImageExists "abc" 5
 
-   echo "abc 0 _ `date +%d.%m.%Y`" > $CLEANREG_WORKSPACE/test.conf
+   echo "abc 0 _ `date +%Y%m%d`" > $CLEANREG_WORKSPACE/test.conf
    runCleanregPython -f $CLEANREG_WORKSPACE/test.conf
    assertImageExists "abc" 1
    assertImageExists "abc" 2

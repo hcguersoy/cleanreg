@@ -61,13 +61,13 @@ consul 20 _
 elasticsearch 1 _
 dummybox 10 _
 mongo 1 _
-postgres 0 `date +%d.%m.%Y`
+postgres 0 `date +%%Y%m%d`
 redis:2 0 _
 EOF
 
    # run cleanreg with --clean-full-catalog -k 2
    # keeping 2 images of alpine and mysql, because they are not in the test.conf
-   runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2 -re -d `date +%d.%m.`$((`date +%Y`+1))
+   runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2 -re -d $((`date +%Y`+1))`date +%m%d`
 
    assertImageExists "consul" 1
    assertImageExists "consul" 2
