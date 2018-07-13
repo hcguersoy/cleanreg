@@ -64,13 +64,21 @@ testCleanASingleRepoRegex() {
    assertImageExists "abc" 4
    assertImageExists "abc" 5
 
-   #run cleanreg
-   runCleanreg -n abc:1\|2 -re  -i
-   assertImageExists "abc" 1
-   assertImageExists "abc" 2
-   assertImageNotExists "abc" 3
-   assertImageNotExists "abc" 4
-   assertImageNotExists "abc" 5
+   #cleanreg with a regex matching abc:1 and abc:2 will delete those
+   runCleanreg -n abc:1\|2 -re -i
+   assertImageNotExists "abc" 1
+   assertImageNotExists "abc" 2
+   assertImageExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
+
+   #regex is not enabled so the tagname won't match any
+   runCleanreg -n abc:3\|4 -i
+   assertImageNotExists "abc" 1
+   assertImageNotExists "abc" 2
+   assertImageExists "abc" 3
+   assertImageExists "abc" 4
+   assertImageExists "abc" 5
 }
 
 testCleanASingleRepoDate() {
