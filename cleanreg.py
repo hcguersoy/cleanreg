@@ -8,6 +8,7 @@ from urlparse import urlparse
 import re
 import json
 import collections
+import yaml
 from requests.auth import HTTPBasicAuth
 from datetime import datetime
 from multiprocessing import Manager, Process, Pool, current_process
@@ -364,8 +365,8 @@ def create_repo_list(cmd_args, regserver):
 
     :param regserver: The registry server
     :param cmd_args: the command line arguments
-    :return: A dict in the format repositoryname : amount of images to be kept
-             and a list of the repository names
+    :return: A dict in the format repositoryname : image tag to delete, amount of images to be kept, date since when
+             image will be kept and a list of the repository names
     """
     found_repos_counts = {}
     all_registry_repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
@@ -400,22 +401,28 @@ def create_repo_list(cmd_args, regserver):
         if cmd_args.verbose > 1:
             print "Will read repo information from file {0}".format(cmd_args.reposfile)
         with open(cmd_args.reposfile) as repoFile:
-            for line in repoFile:
-                line = line.split('#', 1)[0]
-                line = line.strip()
-                if line:
-                    if cmd_args.verbose > 2:
-                        print "Import line ", line
-                    (reponame, keep, date) = line.split()
-                    splittedNames = reponame.split(':')
-                    tagname = ''
-                    reponame = splittedNames[0]
-                    if len(splittedNames) == 2:
-                        tagname = splittedNames[1]
-                    if keep != "_":
-                        found_repos_counts[reponame] = (int(keep), tagname, date)
-                    else:
-                        found_repos_counts[reponame] = (0, tagname, date)
+            repos = yaml.load(repoFile)
+            for repoName in repos.iterkeys():
+                if cmd_args.verbose > 2:
+                    print "Reading config for {0}: {1}".format(repoName, repos.get(repoName))
+                try:
+                    tagName = str(repos[repoName]['tag'])
+                except KeyError:
+                    tagName = ""
+                try:
+                    keep = int(repos[repoName]['keepimages'])
+                except KeyError:
+                    keep = 0
+                try:
+                    date = str(repos[repoName]['date'])
+                except KeyError:
+                    date = ""
+
+                if cmd_args.verbose > 2:
+                    print "    Parsed to:"
+                    print "    tagname: {0}, keepimages: {1}, date: {2}".format(tagName, keep, date)
+
+                found_repos_counts[repoName] = (keep, tagName, date)
 
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
@@ -596,7 +603,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, repo_count, reg
         deletion_tags = {k: deletion_tags[k] for k in deletion_tags if re.match(tagname, k)}
     elif not regex and tagname != "":
         deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
-    if date is not None and date != "_" and date != "":
+    if date is not None and date != "":
         try:
             parsed_date = datetime.strptime(date, '%Y%m%d')
         except ValueError:
