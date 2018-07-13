@@ -590,24 +590,24 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, repo_count, reg
     if verbose > 1:
         print "Repo {0}: ammount_tags : {1}; repo_count: {2}".format(repo, ammount_tags, repo_count)
 
-        deletion_tags = all_tags
-        if regex and tagname != "":
-            deletion_tags = {k: deletion_tags[k] for k in deletion_tags if re.match(tagname, k)}
-        elif not regex and tagname != "":
-            deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
-        if date is not None and date != "_" and date != "":
-            try:
-                parsed_date = datetime.strptime(date, '%Y%m%d')
-            except ValueError:
-                parsed_date =  datetime.strptime(date, '%Y-%m-%d')
-            for tag in deletion_tags.keys():
-                print deletion_tags[tag]['date']
-                tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
-                if tag_date >= parsed_date:
-                    del deletion_tags[tag]
+    deletion_tags = all_tags
+    if regex and tagname != "":
+        deletion_tags = {k: deletion_tags[k] for k in deletion_tags if re.match(tagname, k)}
+    elif not regex and tagname != "":
+        deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
+    if date is not None and date != "_" and date != "":
+        try:
+            parsed_date = datetime.strptime(date, '%Y%m%d')
+        except ValueError:
+            parsed_date =  datetime.strptime(date, '%Y-%m-%d')
+        for tag in deletion_tags.keys():
+            print deletion_tags[tag]['date']
+            tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
+            if tag_date >= parsed_date:
+                del deletion_tags[tag]
 
     if len(deletion_tags) > (ammount_tags - repo_count):
-        deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), len(deletion_tags) - (ammount_tags - repo_count)))
+        deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), ammount_tags - repo_count))
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
