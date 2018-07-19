@@ -10,7 +10,7 @@ oneTimeSetUp() {
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
 abc:
     keepimages: 2
-    date: `date +%Y%m%d`
+    keepsince: `date +%Y%m%d`
 EOF
 }
 
@@ -31,10 +31,10 @@ test_k_has_to_be_positive() {
    assertEquals "cleanreg.py: error: [-k] has to be a positive integer!" "$lastLine"
 }
 
-test_d_has_to_be_valid() {
-   lastLine=$(runCleanreg -n abc -d 01012000 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
+test_s_has_to_be_valid() {
+   lastLine=$(runCleanreg -n abc -s 123 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
-   assertEquals "cleanreg.py: error: [-d] format should be YYYYMMDD or YYYY-MM-DD" "$lastLine"
+   assertEquals "cleanreg.py: error: [-s] format does not match" "$lastLine"
 }
 
 test_n_and_k_works() {
@@ -50,7 +50,7 @@ test_n_and_re_works() {
 }
 
 test_n_and_d_works() {
-   lastLine=$(runCleanreg -n abc -d 2000-01-01 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
+   lastLine=$(runCleanreg -n abc -s 2000-01-01 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
    assertEquals "Aborted by user or nothing to delete." "$lastLine"
 }
@@ -58,31 +58,31 @@ test_n_and_d_works() {
 test_n_doesnt_work_without_k_re_or_d() {
    lastLine=$(runCleanreg -n abc 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
-   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-d]." "$lastLine"
+   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-s]." "$lastLine"
 }
 
 test_cf_doesnt_work_without_k_re_or_d() {
    lastLine=$(runCleanreg -cf 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
-   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-d]." "$lastLine"
+   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-s]." "$lastLine"
 }
 
 test_k_doesnt_work_without_cf_or_n() {
    lastLine=$(runCleanreg -k 2 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
-   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-d]." "$lastLine"
+   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-s]." "$lastLine"
 }
 
 test_re_doesnt_work_without_cf_or_n() {
    lastLine=$(runCleanreg -re 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
-   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-d]." "$lastLine"
+   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-s]." "$lastLine"
 }
 
-test_d_doesnt_work_without_cf_or_n() {
-   lastLine=$(runCleanreg -d 2000-01-01 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
+test_s_doesnt_work_without_cf_or_n() {
+   lastLine=$(runCleanreg -s 2000-01-01 2>&1 | tail -n 1 | tr -dC '[:print:]\t\n')
    echo $lastLine
-   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-d]." "$lastLine"
+   assertEquals "cleanreg.py: error: [-n] or [-cf] have to be used together with [-k], [-re] or [-s]." "$lastLine"
 }
 
 test_n_and_f_cant_be_used_together() {
@@ -159,7 +159,7 @@ test_f_with_date_works() {
 
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
 abc:
-    date: `date +%Y%m%d`
+    keepsince: `date +%Y%m%d`
 EOF
    runCleanregPython -f $CLEANREG_WORKSPACE/test.conf
    assertImageExists "abc" 1

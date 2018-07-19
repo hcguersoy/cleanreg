@@ -59,7 +59,7 @@ def parse_arguments():
                                                    "registry (if -cf is set).", default=0, type=int)
     parser.add_argument('-re', '--regex', help="Interpret tagnames as regular expressions", default=False,
                         action='store_true', dest="regex")
-    parser.add_argument('-d', '--date', help="Keep images which were created since this date. Format: YYYYMMDD or YYYY-MM-DD", default=None)
+    parser.add_argument('-s', '--since', help="Keep images which were created since this date.", default=None)
     parser.add_argument('-f', '--reposfile', help="A yaml file containing the list of Repositories with additional information "
                                                   "regarding tags, dates and how many images to keep.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
@@ -86,14 +86,20 @@ def parse_arguments():
         parser.error("[-k] has to be a positive integer!")
 
     # check if date is valid
-    if args.date is not None:
+    if args.since is not None:
         try:
-            datetime.strptime(args.date, '%Y%m%d')
+            datetime.strptime(args.since, '%Y%m%d')
         except ValueError:
             try:
-                datetime.strptime(args.date, '%Y-%m-%d')
+                datetime.strptime(args.since, '%Y-%m-%d')
             except ValueError:
-                parser.error("[-d] format should be YYYYMMDD or YYYY-MM-DD")
+                try:
+                    datetime.strptime(args.since, '%Y%m%dT%H%M%S')
+                except ValueError:
+                    try:
+                        datetime.strptime(args.since, '%Y-%m-%dT%H:%M:%S')
+                    except ValueError:
+                        parser.error("[-s] format does not match")
     
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
@@ -104,9 +110,9 @@ def parse_arguments():
         parser.error("[-n] and [-cf] cant be used together")
 
     # hackish dependent arguments
-    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.date is not None):
+    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.since is not None):
         if not (bool(args.reposfile) and args.regex):
-            parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-d].")
+            parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-s].")
 
     # hackish dependent arguments
     if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
@@ -381,7 +387,7 @@ def create_repo_list(cmd_args, regserver):
         tagname = ''
         if len(splittedNames) == 2:
             tagname = splittedNames[1]
-        found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.date)
+        found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.since)
 
         if cmd_args.verbose > 2:
             print "repos_counts: ", found_repos_counts
@@ -395,7 +401,7 @@ def create_repo_list(cmd_args, regserver):
             tagname = ''
             if len(splittedNames) == 2:
                 tagname = splittedNames[1]
-            found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.date)
+            found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.since)
             
     if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
@@ -414,15 +420,15 @@ def create_repo_list(cmd_args, regserver):
                 except KeyError:
                     keep = 0
                 try:
-                    date = str(repos[repoName]['date'])
+                    since = str(repos[repoName]['keepsince'])
                 except KeyError:
-                    date = ""
+                    since = ""
 
                 if cmd_args.verbose > 2:
                     print "    Parsed to:"
-                    print "    tagname: {0}, keepimages: {1}, date: {2}".format(tagName, keep, date)
+                    print "    tagname: {0}, keepimages: {1}, since: {2}".format(tagName, keep, since)
 
-                found_repos_counts[repoName] = (keep, tagName, date)
+                found_repos_counts[repoName] = (keep, tagName, since)
 
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
@@ -565,7 +571,7 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
     return result, managed_digests
 
 
-def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, regex, date):
+def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, regex, since):
     """
     Returns a dict containing a list of the tags which could be deleted due
     to name and date.
@@ -576,7 +582,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
     :param tagname: tag of the repo
     :param keep_count: amount of tags to be kept in repository
     :param regex: True if tagnames should be interpreted as regular expressions
-    :param date: Keeps tags which were created since this date
+    :param since: Keeps tags which were created since this date
     :return: a dict of tags to be deleted, their digest and the date then they are created
     """
 
@@ -603,14 +609,20 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
         deletion_tags = {k: deletion_tags[k] for k in deletion_tags if re.match(tagname, k)}
     elif not regex and tagname != "":
         deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
-    if date is not None and date != "":
+    if since is not None and since != "":
         try:
-            parsed_date = datetime.strptime(date, '%Y%m%d')
+            parsed_date = datetime.strptime(since, '%Y%m%d')
         except ValueError:
-            parsed_date =  datetime.strptime(date, '%Y-%m-%d')
+            try:
+                parsed_date =  datetime.strptime(since, '%Y-%m-%d')
+            except ValueError:
+                try:
+                    parsed_date = datetime.strptime(args.since, '%Y%m%dT%H%M%S')
+                except ValueError:
+                    parsed_date = datetime.strptime(args.since, '%Y-%m-%dT%H:%M:%S')
         for tag in deletion_tags.keys():
-            print deletion_tags[tag]['date']
-            tag_date = datetime.strptime(deletion_tags[tag]['date'].split('T')[0], '%Y-%m-%d')
+            tag_date = datetime.strptime(deletion_tags[tag]['date'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+            print "Date: {0}".format(tag_date)
             if tag_date >= parsed_date:
                 del deletion_tags[tag]
 
@@ -664,13 +676,13 @@ if __name__ == '__main__':
 
     repo_del_tags = {}
     repo_del_digests = {}
-    for repo, (count, tagname, date) in repos_counts.iteritems():
+    for repo, (count, tagname, since) in repos_counts.iteritems():
         x += 1
         update_progress(x, len(repos_counts))
         if args.verbose > 0:
             print
             print "will delete repo {0} and keep at least {1} images.".format(repo, count)
-        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, tagname, count, args.regex, date)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, tagname, count, args.regex, since)
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags

@@ -73,11 +73,11 @@ optional arguments:
                         Interpret tagnames as regular expressions for the given
                         repo  (if -n is set) or for each repo of the registry (if
                         -cf is set).
-  -d DATE, --date DATE
-                        Keeps images which were created since this date for
+  -s DATE, --since DATE
+                        Keeps images which were created since then for
                         the given repo  (if -n is set) or for each repo of the
                         registry (if -cf is set).
-                        Format: YYYYMMDD or YYYY-MM-DD
+                        Format: YYYYMMDD, YYYYMMDDThhmmss, YYYY-MM-DD or YYYY-MM-DDThh:mm:ss
   -f REPOSFILE, --reposfile REPOSFILE
                         A yaml file containing the list of Repositories with
                         additional information regarding tags, dates and how many
@@ -85,7 +85,7 @@ optional arguments:
                         Format: REPONAME:
                             tag: TAG
                             keepimages: KEEPIMAGES
-                            date: DATE
+                            keepsince: DATE
   -c CACERT, --cacert CACERT
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
@@ -173,9 +173,9 @@ The configuration file has the format
 <repository name>:
     tag: <tag>
     keepimages: <number of images to keep>
-    date: <date>
+    keepsince: <date>
 ```
-The values for tag, keepimages and date are optional. If the tag should be parsed as a regular expression use the -re flag as shown above. An example file can be found in the repository.
+The values for tag, keepimages and keepsince are optional. If the tag should be parsed as a regular expression use the -re flag as shown above. An example file can be found in the repository.
 
 The configuration file can be used together with the clean-full-catalog option:
 

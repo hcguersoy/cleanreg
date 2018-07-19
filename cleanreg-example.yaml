@@ -1,9 +1,9 @@
 consul:
   tag: OnlyThisTag
   keepimages: 20
-  date: 2000-12-24
+  keepsince: 2000-12-24T12:31:59
 elasticsearch:
   keepimages: 20
-  date: 20000101
+  keepsince: 20000101
 dummybox:
   keepimages: 0
