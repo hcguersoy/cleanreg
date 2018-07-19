@@ -57,7 +57,7 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
 
    # setup conf file
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
-consol:
+consul:
     keepimages: 20
 elasticsearch:
     keepimages: 1

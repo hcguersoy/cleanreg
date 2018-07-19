@@ -7,7 +7,11 @@ oneTimeSetUp() {
    createRegistryImages
    createCleanregImage
    startRegistry
-   echo "abc:\n    keepimages: 2\n    date: `date +%Y%m%d`" > $CLEANREG_WORKSPACE/test.conf
+   tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
+abc:
+    keepimages: 2
+    date: `date +%Y%m%d`
+EOF
 }
 
 oneTimeTearDown() {
@@ -113,7 +117,10 @@ test_f_with_k_works() {
    assertImageExists "abc" 4
    assertImageExists "abc" 5
 
-   echo "abc 2 _" > $CLEANREG_WORKSPACE/test.conf
+   tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
+abc:
+    keepimages: 2
+EOF
    runCleanregPython -f $CLEANREG_WORKSPACE/test.conf
    assertImageNotExists "abc" 1
    assertImageNotExists "abc" 2
@@ -130,7 +137,10 @@ test_f_with_regex_works() {
    assertImageExists "abc" 4
    assertImageExists "abc" 5
 
-   echo "abc:1|2 0 _" > $CLEANREG_WORKSPACE/test.conf
+   tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
+abc:
+    tag: 1|2
+EOF
    runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -re
    assertImageNotExists "abc" 1
    assertImageNotExists "abc" 2
@@ -147,7 +157,10 @@ test_f_with_date_works() {
    assertImageExists "abc" 4
    assertImageExists "abc" 5
 
-   echo "abc 0 `date +%Y%m%d`" > $CLEANREG_WORKSPACE/test.conf
+   tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
+abc:
+    date: `date +%Y%m%d`
+EOF
    runCleanregPython -f $CLEANREG_WORKSPACE/test.conf
    assertImageExists "abc" 1
    assertImageExists "abc" 2
