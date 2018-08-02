@@ -87,19 +87,8 @@ def parse_arguments():
 
     # check if date is valid
     if args.since is not None:
-        try:
-            datetime.strptime(args.since, '%Y%m%d')
-        except ValueError:
-            try:
-                datetime.strptime(args.since, '%Y-%m-%d')
-            except ValueError:
-                try:
-                    datetime.strptime(args.since, '%Y%m%dT%H%M%S')
-                except ValueError:
-                    try:
-                        datetime.strptime(args.since, '%Y-%m-%dT%H:%M:%S')
-                    except ValueError:
-                        parser.error("[-s] format does not match")
+        if parse_date(args.since) == "":
+            parser.error("[-s] format does not match")
     
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
@@ -120,6 +109,28 @@ def parse_arguments():
     if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
         parser.error("[-n|-k] or [-cf|-k] or [-f] has to be used!")
     return args
+
+
+def parse_date(date_string):
+    """
+    Converts a string to datetime
+    :param date_string: Date as string
+    :return: datetime or empty string if date_string is in an invalid format
+    """
+    try:
+        date = datetime.strptime(date_string, '%Y%m%d')
+    except ValueError:
+        try:
+            date = datetime.strptime(date_string, '%Y-%m-%d')
+        except ValueError:
+            try:
+                date = datetime.strptime(date_string, '%Y%m%dT%H%M%S')
+            except ValueError:
+                try:
+                    date = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S')
+                except ValueError:
+                    return ""
+    return date
 
 
 def update_progress(current, maximum, factor=2):
@@ -612,16 +623,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
     elif not regex and tagname != "":
         deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
     if since is not None and since != "":
-        try:
-            parsed_date = datetime.strptime(since, '%Y%m%d')
-        except ValueError:
-            try:
-                parsed_date =  datetime.strptime(since, '%Y-%m-%d')
-            except ValueError:
-                try:
-                    parsed_date = datetime.strptime(args.since, '%Y%m%dT%H%M%S')
-                except ValueError:
-                    parsed_date = datetime.strptime(args.since, '%Y-%m-%dT%H:%M:%S')
+        parsed_date = parse_date(since)
         for tag in deletion_tags.keys():
             tag_date = datetime.strptime(deletion_tags[tag]['date'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
             print "Date: {0}".format(tag_date)
