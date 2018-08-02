@@ -110,11 +110,13 @@ def parse_arguments():
         parser.error("[-n] and [-cf] cant be used together")
 
     # hackish dependent arguments
+    # Either using reponame/clean_full_catalog or keepimages/regex/since is not allowed unless using a reposfile with a regular expression
     if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.since is not None):
         if not (bool(args.reposfile) and args.regex):
             parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-s].")
 
     # hackish dependent arguments
+    # Either one of these parameters has to be used
     if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
         parser.error("[-n|-k] or [-cf|-k] or [-f] has to be used!")
     return args
@@ -626,11 +628,15 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
             if tag_date >= parsed_date:
                 del deletion_tags[tag]
 
-    if len(deletion_tags) > (ammount_tags - keep_count):
+    # considers keep_count to check if too many images are marked for deletion
+    delete_count = ammount_tags - keep_count
+    if len(deletion_tags) > delete_count:
         if ammount_tags <= keep_count:
+            # keep all images
             deletion_tags.clear()
         else:
-            deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), ammount_tags - keep_count))
+            # removes the last keep_count tags from deletion_tags
+            deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), delete_count))
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
