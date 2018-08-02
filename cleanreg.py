@@ -619,7 +619,9 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
 
     deletion_tags = all_tags
     if regex and tagname != "":
-        deletion_tags = {k: deletion_tags[k] for k in deletion_tags if re.match(tagname, k)}
+        for tag in deletion_tags.keys():
+            if not re.match(tagname, tag):
+                del deletion_tags[tag]
     elif not regex and tagname != "":
         deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
     if since is not None and since != "":
