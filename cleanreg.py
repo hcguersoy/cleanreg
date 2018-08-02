@@ -124,7 +124,7 @@ def parse_arguments():
 
 def update_progress(current, maximum, factor=2):
     if maximum is 0:
-        raise Exception('Maximum ammount should not be zero.')
+        raise Exception('Maximum amount should not be zero.')
     progress = (100 * current) / maximum
     sys.stdout.write('\r{0}>> {1}%'.format('=' * (progress / factor), progress))
     sys.stdout.flush()
@@ -480,7 +480,7 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
     :param repo: The repository name
     :param results: A managed dict which is used to return a dict containing the tag, date and digest
     :param digests: A managed list which contains a list of all found digests, used to check for multiple usage
-    :param md_workers: Ammount of parallel workers to retrieve metadata
+    :param md_workers: Amount of parallel workers to retrieve metadata
     :param cacert: The path to the certificate file
     :return: Returns using the managed collections results and digests
     """
@@ -508,11 +508,11 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
         print "Found tags for repo {0}: {1} ".format(repo, tags_all)
 
     if tags_all is None:
-        ammount_tags = 0
+        amount_tags = 0
     else:
-        ammount_tags = len(tags_all)
+        amount_tags = len(tags_all)
     if verbose > 2:
-        print "ammount_tags : ", ammount_tags
+        print "amount_tags : ", amount_tags
     if verbose > 0:
         print "Retrieving metada for repository ", repo
 
@@ -596,15 +596,15 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
         # for (k, v) in all_tags.iteritems():
 
     if all_tags is None:
-        ammount_tags = 0
+        amount_tags = 0
     else:
-        ammount_tags = len(all_tags)
+        amount_tags = len(all_tags)
 
     if keep_count is None:
         keep_count = 0
 
     if verbose > 1:
-        print "Repo {0}: ammount_tags : {1}; repo_count: {2}".format(repo, ammount_tags, keep_count)
+        print "Repo {0}: amount_tags : {1}; repo_count: {2}".format(repo, amount_tags, keep_count)
 
     deletion_tags = all_tags
     if regex and tagname != "":
@@ -629,9 +629,9 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
                 del deletion_tags[tag]
 
     # considers keep_count to check if too many images are marked for deletion
-    delete_count = ammount_tags - keep_count
+    delete_count = amount_tags - keep_count
     if len(deletion_tags) > delete_count:
-        if ammount_tags <= keep_count:
+        if amount_tags <= keep_count:
             # keep all images
             deletion_tags.clear()
         else:
