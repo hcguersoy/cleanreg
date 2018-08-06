@@ -11,22 +11,22 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
-* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thnks @kekru for his PR) 
+* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thnks @kekru for his PR)
 * v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
 * v0.4.1 - added `--assume-yes` and deprecated `--quiet` flag
 * v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
-* v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag. 
+* v0.3 - fixing deletion if a digest is associated with multiple tags, introducing the `--ignore-ref-tags` flag.
 * v0.2 - added support for registry server using self signed certificates
-* v0.1 - first version with basics 
+* v0.1 - first version with basics
 
 ## Prerequisites and supported Plattform
 
 This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. It is developed against Docker Registry version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1), but tested against [2.6.1](https://github.com/docker/distribution/releases/tag/v2.6.1) and *latest* (see [https://hub.docker.com/r/library/registry/](https://hub.docker.com/r/library/registry/)).
 
-You need to install the Python module *requests*:
+You need to install the Python modules *requests* and *PyYAML*:
 
 ```
-$ pip install requests
+$ pip install requests PyYAML
 ```
 
 Be sure to configure your registry server to allow deletion (see [https://docs.docker.com/registry/configuration/#/delete](https://docs.docker.com/registry/configuration/#/delete)).
@@ -36,9 +36,10 @@ Be sure to configure your registry server to allow deletion (see [https://docs.d
 Download the file *cleanreg.py* or clone this repository to a local directory.
 
 ```
-usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-q] [-n REPONAME]
-                   [-k KEEPIMAGES] [-f REPOSFILE] [-c CACERT] [-i]
-                   [-u BASICAUTHUSER] [-pw BASICAUTHPW] [-w MD_WORKERS]
+usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-q] [-n REPONAME:TAG]
+                   [-k KEEPIMAGES] [-re] [-d DATE]
+                   [-f REPOSFILE] [-c CACERT] [-i] [-u BASICAUTHUSER]
+                   [-pw BASICAUTHPW] [-w MD_WORKERS]
 
 Removes images on a docker registry (v2).
 
@@ -57,19 +58,34 @@ optional arguments:
                         will be answered with YES
   -q, --quiet           [deprecated] If set no user action will appear and all
                         questions will be answered with YES
-  -n REPONAME, --reponame REPONAME
-                        The name of the repo which should be cleaned up
+  -n REPONAME, --reponame REPONAME:TAG
+                        The name of the repo which should be cleaned up. Tags
+                        are optional.
   -cf, --clean-full-catalog
                         If set all repos of the registry will be cleaned up,
-                        keeping the amount of images specified in -k option. 
-                        The amount for each repo can be overridden in the repofile (-f).
+                        considering the -k, -re and -d options.
+                        These can be overridden for each repo in the repofile (-f).
   -k KEEPIMAGES, --keepimages KEEPIMAGES
                         Amount of images (not tags!) which should be kept for
-                        the given repo  (if -n is set) or for each repo of the 
+                        the given repo  (if -n is set) or for each repo of the
                         registry (if -cf is set).
+  -re, --regex
+                        Interpret tagnames as regular expressions for the given
+                        repo  (if -n is set) or for each repo of the registry (if
+                        -cf is set).
+  -s DATE, --since DATE
+                        Keeps images which were created since then for
+                        the given repo  (if -n is set) or for each repo of the
+                        registry (if -cf is set).
+                        Format: YYYYMMDD, YYYYMMDDThhmmss, YYYY-MM-DD or YYYY-MM-DDThh:mm:ss
   -f REPOSFILE, --reposfile REPOSFILE
-                        A file containing the list of Repositories and how
-                        many images should be kept.
+                        A yaml file containing the list of Repositories with
+                        additional information regarding tags, dates and how many
+                        images to keep.
+                        Format: REPONAME:
+                            tag: TAG
+                            keepimages: KEEPIMAGES
+                            keepsince: DATE
   -c CACERT, --cacert CACERT
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
@@ -121,6 +137,18 @@ Again: to be secure use the `-i` flag:
 Same as above but ignore images which are associated with multiple tags.
 
 ```
+./cleanreg.py -r http://192.168.56.2:5000 -n mysql:latest -i
+```
+
+Will only delete the image mysql which is tagged as latest.
+
+```
+./cleanreg.py -r http://192.168.56.2:5000 -n mysql:.*temp.* -re -d 2018-01-01 -k 5 -i
+```
+
+Removes all images that contain the word "temp" in their tagnames and if they were created before 2018 but at least 5 will be kept in total.
+
+```
 ./cleanreg.py -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
 ```
 
@@ -138,16 +166,23 @@ This will clean up all repositories, keeping 5 images per repository.
 Cleaning up multiple repositories defined in a configuration file:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -i
+./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -re -i
 ```
-The configuration file has the format `<repository name> <images to keep>`. An example file can be found in the repository.
+The configuration file has the format
+```
+<repository name>:
+    tag: <tag>
+    keepimages: <number of images to keep>
+    keepsince: <date>
+```
+The values for tag, keepimages and keepsince are optional. If the tag should be parsed as a regular expression use the -re flag as shown above. An example file can be found in the repository.
 
 The configuration file can be used together with the clean-full-catalog option:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -cf -k 5 -f cleanreg-example.conf -i
+./cleanreg.py -r http://192.168.56.2:5000 -cf -d 20180101 -f cleanreg-example.conf -i
 ```
-This will clean the repositories with images to keep as defined in the configuration file and it will additionally clean all other repositories of the registry, keeping 5 images per repository.
+This will clean the repositories with images to keep as defined in the configuration file and it will additionally clean all other repositories of the registry, keeping images per repository that were created since 2018.
 
 
 If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
@@ -200,7 +235,7 @@ Prerequisites:
 * Locally installed Docker engine (remote execution is not yet implemented; runs with Docker for MacOS fine)
 
 You can run all tests, with the *runAllTests.sh* script:
- 
+
 ```
 cd test
 ./runAllTests.sh

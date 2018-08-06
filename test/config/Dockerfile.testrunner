@@ -10,6 +10,6 @@ RUN mkdir /setup \
  && tar -xvzf /setup/docker.tgz \
  && mv /setup/docker/docker /usr/bin/docker
 
-RUN pip install requests
+RUN pip install requests PyYAML
 
 ENTRYPOINT ["/bin/bash", "-c"]

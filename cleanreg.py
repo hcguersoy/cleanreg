@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # coding=utf-8
-
 import sys
 import os
 import requests
 import argparse
 from urlparse import urlparse
+import re
 import json
 import collections
+import yaml
 from requests.auth import HTTPBasicAuth
+from datetime import datetime
 from multiprocessing import Manager, Process, Pool, current_process
 from itertools import islice
 from functools import partial
@@ -47,16 +49,19 @@ def parse_arguments():
                         action='store_true', dest="assumeyes")
     parser.add_argument('-q', '--quiet', help="[deprecated] If set no user action will appear and all questions will "
                                               "be answered with YES", default=False, action='store_true')
-    parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up")
+    parser.add_argument('-n', '--reponame', help="The name of the repo which should be cleaned up. Tags are optional.")
     parser.add_argument('-cf', '--clean-full-catalog', help="If set all repos of the registry will be cleaned up, "
                                                             "keeping the amount of images specified in -k option. "
                                                             "The amount for each repo can be overridden in the repofile (-f).",
                                                             default=False, action='store_true', dest='clean_full_catalog')
     parser.add_argument('-k', '--keepimages', help="Amount of images (not tags!) which should be kept "
                                                    "for the given repo (if -n is set) or for each repo of the "
-                                                   "registry (if -cf is set).", type=int)
-    parser.add_argument('-f', '--reposfile', help="A file containing the list of Repositories and "
-                                                  "how many images should be kept.")
+                                                   "registry (if -cf is set).", default=0, type=int)
+    parser.add_argument('-re', '--regex', help="Interpret tagnames as regular expressions", default=False,
+                        action='store_true', dest="regex")
+    parser.add_argument('-s', '--since', help="Keep images which were created since this date.", default=None)
+    parser.add_argument('-f', '--reposfile', help="A yaml file containing the list of Repositories with additional information "
+                                                  "regarding tags, dates and how many images to keep.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
                                                "TLS is used in the registry server.", default=None)
     parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest if it is referenced multiple times "
@@ -79,6 +84,11 @@ def parse_arguments():
     # check if keepimages is set that it is not negative
     if (args.keepimages is not None) and (args.keepimages < 0):
         parser.error("[-k] has to be a positive integer!")
+
+    # check if date is valid
+    if args.since is not None:
+        if parse_date(args.since) == "":
+            parser.error("[-s] format does not match")
     
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
@@ -89,18 +99,43 @@ def parse_arguments():
         parser.error("[-n] and [-cf] cant be used together")
 
     # hackish dependent arguments
-    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not None):
-        parser.error("[-n] or [-cf] have to be used together with [-k].")
+    # Either using reponame/clean_full_catalog or keepimages/regex/since is not allowed unless using a reposfile with a regular expression
+    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.since is not None):
+        if not (bool(args.reposfile) and args.regex):
+            parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-s].")
 
     # hackish dependent arguments
+    # Either one of these parameters has to be used
     if bool(args.reponame) is False and args.clean_full_catalog is False and bool(args.reposfile) is False:
         parser.error("[-n|-k] or [-cf|-k] or [-f] has to be used!")
     return args
 
 
+def parse_date(date_string):
+    """
+    Converts a string to datetime
+    :param date_string: Date as string
+    :return: datetime or empty string if date_string is in an invalid format
+    """
+    try:
+        date = datetime.strptime(date_string, '%Y%m%d')
+    except ValueError:
+        try:
+            date = datetime.strptime(date_string, '%Y-%m-%d')
+        except ValueError:
+            try:
+                date = datetime.strptime(date_string, '%Y%m%dT%H%M%S')
+            except ValueError:
+                try:
+                    date = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S')
+                except ValueError:
+                    return ""
+    return date
+
+
 def update_progress(current, maximum, factor=2):
     if maximum is 0:
-        raise Exception('Maximum ammount should not be zero.')
+        raise Exception('Maximum amount should not be zero.')
     progress = (100 * current) / maximum
     sys.stdout.write('\r{0}>> {1}%'.format('=' * (progress / factor), progress))
     sys.stdout.flush()
@@ -343,14 +378,14 @@ def get_all_repos(verbose, regserver, cacert=None):
 
 def create_repo_list(cmd_args, regserver):
     """
-    Builds up a dict of repositories which have to be cleaned up and how many
+    Builds up a dict of repositories which have to be cleaned up and which
     images have to be kept.
     If the ignoreflag is set, a list of all repositories will be retrieved.
 
     :param regserver: The registry server
     :param cmd_args: the command line arguments
-    :return: A dict in the format repositoryname : amount of images to be kept
-             and a list of the repository names
+    :return: A dict in the format repositoryname : image tag to delete, amount of images to be kept, date since when
+             image will be kept and a list of the repository names
     """
     found_repos_counts = {}
     all_registry_repos = get_all_repos(cmd_args.verbose, regserver, cmd_args.cacert)
@@ -358,8 +393,15 @@ def create_repo_list(cmd_args, regserver):
     if bool(cmd_args.reponame) is True:
         if cmd_args.verbose > 1:
             print "In single repo mode."
-            print "Will keep {0} images from repo {1}".format(cmd_args.keepimages, cmd_args.reponame)
-        found_repos_counts = {cmd_args.reponame: cmd_args.keepimages}
+            print "Will keep matching images from repo {0}".format(cmd_args.reponame)
+
+        splittedNames = cmd_args.reponame.split(':')
+        repo = splittedNames[0]
+        tagname = ''
+        if len(splittedNames) == 2:
+            tagname = splittedNames[1]
+        found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.since)
+
         if cmd_args.verbose > 2:
             print "repos_counts: ", found_repos_counts
     
@@ -367,20 +409,39 @@ def create_repo_list(cmd_args, regserver):
         if cmd_args.verbose > 1:
             print "Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages)
         for repo in all_registry_repos:
-            found_repos_counts[repo] = cmd_args.keepimages
+            splittedNames = repo.split(':')
+            repo = splittedNames[0]
+            tagname = ''
+            if len(splittedNames) == 2:
+                tagname = splittedNames[1]
+            found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.since)
             
     if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
             print "Will read repo information from file {0}".format(cmd_args.reposfile)
         with open(cmd_args.reposfile) as repoFile:
-            for line in repoFile:
-                line = line.split('#', 1)[0]
-                line = line.strip()
-                if line:
-                    if cmd_args.verbose > 2:
-                        print "Import line ", line
-                    (reponame, keep) = line.split()
-                    found_repos_counts[reponame] = int(keep)
+            repos = yaml.load(repoFile)
+            for repoName in repos.iterkeys():
+                if cmd_args.verbose > 2:
+                    print "Reading config for {0}: {1}".format(repoName, repos.get(repoName))
+                try:
+                    tagName = str(repos[repoName]['tag'])
+                except KeyError:
+                    tagName = ""
+                try:
+                    keep = int(repos[repoName]['keepimages'])
+                except KeyError:
+                    keep = 0
+                try:
+                    since = str(repos[repoName]['keepsince'])
+                except KeyError:
+                    since = ""
+
+                if cmd_args.verbose > 2:
+                    print "    Parsed to:"
+                    print "    tagname: {0}, keepimages: {1}, since: {2}".format(tagName, keep, since)
+
+                found_repos_counts[repoName] = (keep, tagName, since)
 
     if cmd_args.verbose > 1:
         print "These repos will be processed:"
@@ -430,7 +491,7 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
     :param repo: The repository name
     :param results: A managed dict which is used to return a dict containing the tag, date and digest
     :param digests: A managed list which contains a list of all found digests, used to check for multiple usage
-    :param md_workers: Ammount of parallel workers to retrieve metadata
+    :param md_workers: Amount of parallel workers to retrieve metadata
     :param cacert: The path to the certificate file
     :return: Returns using the managed collections results and digests
     """
@@ -458,11 +519,11 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
         print "Found tags for repo {0}: {1} ".format(repo, tags_all)
 
     if tags_all is None:
-        ammount_tags = 0
+        amount_tags = 0
     else:
-        ammount_tags = len(tags_all)
+        amount_tags = len(tags_all)
     if verbose > 2:
-        print "ammount_tags : ", ammount_tags
+        print "amount_tags : ", amount_tags
     if verbose > 0:
         print "Retrieving metada for repository ", repo
 
@@ -523,7 +584,7 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
     return result, managed_digests
 
 
-def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
+def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, regex, since):
     """
     Returns a dict containing a list of the tags which could be deleted due
     to name and date.
@@ -531,7 +592,10 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
     :param tags_dates_digests: A dict containing image tags, their corresponding digest and the layer creation date 
     :param verbose: The verbosity level
     :param repo: the repository name
-    :param repo_count: amount of tags to be kept in repository
+    :param tagname: tag of the repo
+    :param keep_count: amount of tags to be kept in repository
+    :param regex: True if tagnames should be interpreted as regular expressions
+    :param since: Keeps tags which were created since this date
     :return: a dict of tags to be deleted, their digest and the date then they are created
     """
 
@@ -543,15 +607,40 @@ def get_deletiontags(verbose, tags_dates_digests, repo, repo_count):
         # for (k, v) in all_tags.iteritems():
 
     if all_tags is None:
-        ammount_tags = 0
+        amount_tags = 0
     else:
-        ammount_tags = len(all_tags)
+        amount_tags = len(all_tags)
+
+    if keep_count is None:
+        keep_count = 0
 
     if verbose > 1:
-        print "Repo {0}: ammount_tags : {1}; repo_count: {2}".format(repo, ammount_tags, repo_count)
+        print "Repo {0}: amount_tags : {1}; repo_count: {2}".format(repo, amount_tags, keep_count)
 
-    if ammount_tags > repo_count:
-        deletion_tags = collections.OrderedDict(islice(all_tags.iteritems(), ammount_tags - repo_count))
+    deletion_tags = all_tags
+    if regex and tagname != "":
+        for tag in deletion_tags.keys():
+            if not re.match(tagname, tag):
+                del deletion_tags[tag]
+    elif not regex and tagname != "":
+        deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
+    if since is not None and since != "":
+        parsed_date = parse_date(since)
+        for tag in deletion_tags.keys():
+            tag_date = datetime.strptime(deletion_tags[tag]['date'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+            print "Date: {0}".format(tag_date)
+            if tag_date >= parsed_date:
+                del deletion_tags[tag]
+
+    # considers keep_count to check if too many images are marked for deletion
+    delete_count = amount_tags - keep_count
+    if len(deletion_tags) > delete_count:
+        if amount_tags <= keep_count:
+            # keep all images
+            deletion_tags.clear()
+        else:
+            # removes the last keep_count tags from deletion_tags
+            deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), delete_count))
         if verbose > 1:
             print
             print "Deletion candidates for repo {0}".format(repo)
@@ -597,13 +686,13 @@ if __name__ == '__main__':
 
     repo_del_tags = {}
     repo_del_digests = {}
-    for repo, count in repos_counts.iteritems():
+    for repo, (count, tagname, since) in repos_counts.iteritems():
         x += 1
         update_progress(x, len(repos_counts))
         if args.verbose > 0:
             print
-            print "will delete repo {0} and keep {1} images.".format(repo, count)
-        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, count)
+            print "will delete repo {0} and keep at least {1} images.".format(repo, count)
+        del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, tagname, count, args.regex, since)
 
         if len(del_tags) > 0:
             repo_del_tags[repo] = del_tags
