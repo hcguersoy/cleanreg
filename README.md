@@ -5,13 +5,12 @@ This is a small tool to delete tags, or, to be more correct, delete image manife
 
 Please be aware of that this is a soft delete. You've to run the registry garbage collection after this tool has been applied.
 
-For Docker Registry v2 API specification see [https://docs.docker.com/registry/spec/api/](https://docs.docker.com/registry/spec/api/).
-
 Information about the needed garbage collection is described at [https://docs.docker.com/registry/garbage-collection/](https://docs.docker.com/registry/garbage-collection/).
 
 ## History
 
-* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thnks @kekru for his PR)
+* v0.7 - This is a release which breaks some stuff (configuration file is now yaml based), adding new options for keeping images (e.g. `--since`, `--regex`) (thanks to @JulianSauer for his [PR10](https://github.com/hcguersoy/cleanreg/pull/10))
+* v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thanks @kekru for his PR)
 * v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
 * v0.4.1 - added `--assume-yes` and deprecated `--quiet` flag
 * v0.4 - added support for basic auth secured registry servers, introducing `--basicauth-user` and `--basicauth-pw` (thanks to @kekru for his pull request)
@@ -21,21 +20,27 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## Prerequisites and supported Plattform
 
-This tool was implemented and tested on Ubuntu Linux 14.04, 16.04 and on MacOS 10.12 using Python 2.7. It is developed against Docker Registry version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1), but tested against [2.6.1](https://github.com/docker/distribution/releases/tag/v2.6.1) and *latest* (see [https://hub.docker.com/r/library/registry/](https://hub.docker.com/r/library/registry/)).
+You need Docker and a Docker registry system which implements the Registry API v2.
+For Docker Registry v2 API specification see [https://docs.docker.com/registry/spec/api/](https://docs.docker.com/registry/spec/api/).
 
-You need to install the Python modules *requests* and *PyYAML*:
-
-```
-$ pip install requests PyYAML
-```
-
-Be sure to configure your registry server to allow deletion (see [https://docs.docker.com/registry/configuration/#/delete](https://docs.docker.com/registry/configuration/#/delete)).
+Be sure to configure your registry server to allow deletion (see [https://docs.docker.com/registry/configuration/#/delete](https://docs.docker.com/registry/configuration/#/delete)). 
 
 ## Usage
 
-Download the file *cleanreg.py* or clone this repository to a local directory.
+Download the file *cleanreg.py* or clone this repository to a local directory or pull the docker image. This is the suggested way to run `cleanreg`! 
 
 ```
+docker pull hcguersoy/cleanreg:v0.7.0
+```
+
+The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
+
+*Hint:* `latest` tag is not supported (you know, `latest` is evil 😈).
+
+To get a immediate help simply run it without any parameters:
+
+```
+$ docker run --rm hcguersoy/cleanreg:v0.7.0
 usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-q] [-n REPONAME:TAG]
                    [-k KEEPIMAGES] [-re] [-d DATE]
                    [-f REPOSFILE] [-c CACERT] [-i] [-u BASICAUTHUSER]
@@ -108,15 +113,19 @@ optional arguments:
 
 ```
 
-In addition, you can obtain the public docker image to run it in a container:
+
+If you've to use a configuration file (parameter `-f`) you should mount that file into your container:
 
 ```
-docker run --rm hcguersoy/cleanreg:v0.5.0
+docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.yaml hcguersoy/cleanreg:<version> -r  http://192.168.56.2:5000 -f cleanreg-example.yaml -i
 ```
 
-The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
+As an alternative, you can create your own image, inheriting from `cleanreg`:
 
-*Hint:* `latest` tag is not provided anymore!
+```
+FROM hcguersoy/cleanreg:v0.7.0
+ADD myconfig.yaml /config.yaml
+```
 
 ## Examples
 
@@ -125,31 +134,31 @@ The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https:/
 Cleaning up a single repository called mysql on registry server 192.168.56.2:5000 and keeping 5 of the latest images:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql -k 5
 ```
 Be aware that you don't keep here the five last tags but digests/images. As a digest can be associated with multiple tags this can result in deletion of images which you not intended in!
 Again: to be secure use the `-i` flag:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -n mysql -k 5 -i
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql -k 5 -i
 ```
 
 Same as above but ignore images which are associated with multiple tags.
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -n mysql:latest -i
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql:latest -i
 ```
 
 Will only delete the image mysql which is tagged as latest.
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -n mysql:.*temp.* -re -d 2018-01-01 -k 5 -i
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql:.*temp.* -re -d 2018-01-01 -k 5 -i
 ```
 
 Removes all images that contain the word "temp" in their tagnames and if they were created before 2018 but at least 5 will be kept in total.
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
 ```
 
 If you have a very large registry and enough bandwidth you can increase the parallel workers to retrieve the image metadata. The default is *6*. Be aware that you can generate a *DoS* on your registry server by increasing to much.
@@ -158,7 +167,7 @@ If you have a very large registry and enough bandwidth you can increase the para
 Cleaning up all repositories of the registry:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -cf -k 5 -i
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -cf -k 5 -i
 ```
 This will clean up all repositories, keeping 5 images per repository.
 
@@ -166,16 +175,31 @@ This will clean up all repositories, keeping 5 images per repository.
 Cleaning up multiple repositories defined in a configuration file:
 
 ```
-./cleanreg.py -r http://192.168.56.2:5000 -f cleanreg-example.conf -re -i
+docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.yaml hcguersoy/cleanreg:<version>  -r http://192.168.56.2:5000 -f /cleanreg-example.yaml -re -i
 ```
 The configuration file has the format
+
 ```
 <repository name>:
     tag: <tag>
     keepimages: <number of images to keep>
     keepsince: <date>
 ```
-The values for tag, keepimages and keepsince are optional. If the tag should be parsed as a regular expression use the -re flag as shown above. An example file can be found in the repository.
+
+The values for `tag`, `keepimages` and `keepsince` are optional. If the tag should be parsed as a regular expression use the `-re` flag as shown above. A simple example for the configuration file:
+
+```
+consul:
+  tag: OnlyThisTag
+  keepimages: 20
+  keepsince: 2000-12-24T12:31:59
+elasticsearch:
+  keepimages: 20
+  keepsince: 20000101
+dummybox:
+  keepimages: 0
+```
+
 
 The configuration file can be used together with the clean-full-catalog option:
 
@@ -184,12 +208,6 @@ The configuration file can be used together with the clean-full-catalog option:
 ```
 This will clean the repositories with images to keep as defined in the configuration file and it will additionally clean all other repositories of the registry, keeping images per repository that were created since 2018.
 
-
-If you've to use a repositories definition file (parameter `-f`) while using the image distribution you should mount that file into your container:
-
-```
-docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.conf hcguersoy/cleanreg:<version> -r  http://192.168.56.2:5000 -f cleanreg-example.conf -i
-```
 
 There is a simple script added to create multiple image tags (based on `busybox`) on your registry server.
 
@@ -225,6 +243,16 @@ The registry itself should be stopped before running this.
 ## Contribution
 
 Feel free to contribute your changes as a PR. Please ensure that the tests run without errors and provide tests for additional functionality.
+
+This tool was implemented and tested on Ubuntu Linux 16.04 and on MacOS 10.13 using Python 2.7. It is developed against Docker Registry version [2.5.1](https://github.com/docker/distribution/releases/tag/v2.5.1), but tested against [2.6.1](https://github.com/docker/distribution/releases/tag/v2.6.1) and *latest* (see [https://hub.docker.com/r/library/registry/](https://hub.docker.com/r/library/registry/)).
+
+You need to install the Python modules *requests* and *PyYAML*:
+
+```
+$ pip install requests PyYAML
+```
+
+Be sure to configure your registry server to allow deletion (see [https://docs.docker.com/registry/configuration/#/delete](https://docs.docker.com/registry/configuration/#/delete)).
 
 
 ### Run tests

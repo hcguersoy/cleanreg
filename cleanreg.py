@@ -17,7 +17,8 @@ from functools import partial
 
 __author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, ' \
              'Kevin Krummenauer <kevin@whiledo.de>', \
-             'Marvin becker <mail@derwebcoder.de>'
+             'Marvin becker <mail@derwebcoder.de>', \
+             'Julian Sauer (https://github.com/JulianSauer)'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2017
@@ -89,7 +90,7 @@ def parse_arguments():
     if args.since is not None:
         if parse_date(args.since) == "":
             parser.error("[-s] format does not match")
-    
+
     # hackish mutually exclusive group
     if bool(args.reponame) and bool(args.reposfile):
         parser.error("[-n] and [-f] cant be used together")
@@ -194,7 +195,7 @@ def is_v2_registry(verbose, regserver, cacert=None):
     if verbose > 0:
         print 'Check if registry server supports v2...'
     check_url = regserver
-    
+
     check_result = requests.get(check_url, verify=cacert, auth=get_auth())
 
     if verbose > 1:
@@ -237,7 +238,7 @@ def get_auth():
     if (args.basicauthuser is not None) and (args.basicauthpw is not None):
         return HTTPBasicAuth(args.basicauthuser, args.basicauthpw)
     else:
-        return None    
+        return None
 
 
 def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
@@ -404,7 +405,7 @@ def create_repo_list(cmd_args, regserver):
 
         if cmd_args.verbose > 2:
             print "repos_counts: ", found_repos_counts
-    
+
     if cmd_args.clean_full_catalog is True:
         if cmd_args.verbose > 1:
             print "Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages)
@@ -415,7 +416,7 @@ def create_repo_list(cmd_args, regserver):
             if len(splittedNames) == 2:
                 tagname = splittedNames[1]
             found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.since)
-            
+
     if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
             print "Will read repo information from file {0}".format(cmd_args.reposfile)
@@ -485,7 +486,7 @@ def retrieve_metadata(tag, verbose, regserver, repo, managed_tags_date_digests,
 def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md_workers, cacert=None):
     """
         Retrieves all Tags, the creation date of the layer the tag point to and digest of the layer.
-        
+
     :param verbose: The verbosity level
     :param regserver: The registry server
     :param repo: The repository name
@@ -545,12 +546,12 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
 def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cacert=None):
     """
     Retrieve all tags and finally digests for all repositories.
-    
+
     :param verbose: verbosity level
     :param regserver: the URL of the reg server
-    :param repositories: the list of repositories to be cleaned up 
+    :param repositories: the list of repositories to be cleaned up
     :param cacert: the path to a cacert file
-    :return: a nested dict containing all repos and for each repo the list of all tags and their digests. 
+    :return: a nested dict containing all repos and for each repo the list of all tags and their digests.
     """
 
     result = {}
@@ -589,7 +590,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
     Returns a dict containing a list of the tags which could be deleted due
     to name and date.
 
-    :param tags_dates_digests: A dict containing image tags, their corresponding digest and the layer creation date 
+    :param tags_dates_digests: A dict containing image tags, their corresponding digest and the layer creation date
     :param verbose: The verbosity level
     :param repo: the repository name
     :param tagname: tag of the repo
