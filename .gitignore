@@ -1,3 +1,4 @@
 .idea/
 test/testlog.txt
 .DS_Store
+venv
