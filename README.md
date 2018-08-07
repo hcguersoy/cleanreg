@@ -175,7 +175,13 @@ This will clean up all repositories, keeping 5 images per repository.
 Cleaning up multiple repositories defined in a configuration file:
 
 ```
-docker run --rm -it -v $(pwd)/cleanreg-example.conf:/cleanreg-example.yaml hcguersoy/cleanreg:<version>  -r http://192.168.56.2:5000 -f /cleanreg-example.yaml -re -i
+docker run --rm -it \
+        -v $(pwd)/cleanreg-example.conf:/cleanreg-example.yaml \
+       hcguersoy/cleanreg:<version>  \
+       -r http://192.168.56.2:5000 \
+       -f /cleanreg-example.yaml \
+       -re \
+       -i
 ```
 The configuration file has the format
 
