@@ -65,6 +65,7 @@ def parse_arguments():
                                                   "regarding tags, dates and how many images to keep.")
     parser.add_argument('-c', '--cacert', help="Path to a valid CA certificate file. This is needed if self signed "
                                                "TLS is used in the registry server.", default=None)
+    parser.add_argument('-sv', '--skip-tls-verify', help="If set insecure TLS is allowed, so no need for a valid cert to verify.", default=False, action='store_true', dest="skip_tls_verify")
     parser.add_argument('-i', '--ignore-ref-tags', help="Ignore a digest if it is referenced multiple times "
                                                         "in the whole registry server. In this case, a list of all "
                                                         "repositories and their images will be retrieved which can be "
@@ -664,6 +665,9 @@ if __name__ == '__main__':
         if args.verbose > 1:
             print "Will exclude registryserver location from proxy:", urlparse(args.registry).netloc
         os.environ['no_proxy'] = urlparse(args.registry).netloc
+
+    if args.skip_tls_verify:
+        args.cacert = False
 
     # initially check if we've a v2 registry server
     if is_v2_registry(args.verbose, reg_server_api, args.cacert) is False:
