@@ -15,10 +15,11 @@ from multiprocessing import Manager, Process, Pool, current_process
 from itertools import islice
 from functools import partial
 
-__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, ' \
-             'Kevin Krummenauer <kevin@whiledo.de>', \
-             'Marvin becker <mail@derwebcoder.de>', \
-             'Julian Sauer (https://github.com/JulianSauer)'
+__author__ = 'Halil-Cem Guersoy (https://github.com/hcguersoy), ' \
+             'Kevin Krummenauer (https://github.com/kekru)', \
+             'Marvin becker (https://github.com/derwebcoder)', \
+             'Julian Sauer (https://github.com/JulianSauer)', \
+             'Jonas Tschoche (https://github.com/Jonas18175)'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2022
