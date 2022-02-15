@@ -1,4 +1,5 @@
 #!/bin/bash
+setopt shwordsplit
 
 source ../config/testutil.sh
 
@@ -9,7 +10,11 @@ setUp() {
 }
 
 teardown() {
-  echo "Good bye"
+  stopRegistry
+}
+
+oneTimeTearDown() {
+  echo " **** Good bye **** "
   stopRegistry
 }
 
@@ -25,14 +30,16 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
    createTestdata "postgres" 1 3
    createTestdata "redis" 1 3
 
+   echo " *** Created test images, checking if they are in the registry"
+
    assertImageExists "consul" 1
    assertImageExists "consul" 2
    assertImageExists "consul" 3
-   
+
    assertImageExists "elasticsearch" 1
    assertImageExists "elasticsearch" 2
    assertImageExists "elasticsearch" 3
-   
+
    assertImageExists "alpine" 1
    assertImageExists "alpine" 2
    assertImageExists "alpine" 3
@@ -55,6 +62,8 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
    assertImageExists "redis" 2
    assertImageExists "redis" 3
 
+    echo " *** creating configuration file"
+
    # setup conf file
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
 consul:
@@ -73,18 +82,21 @@ redis:
     keepimages: 0
 EOF
 
+    echo " *** running cleanreg"
+
    # run cleanreg with --clean-full-catalog -k 2
    # keeping 2 images of alpine and mysql, because they are not in the test.conf
    runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2 -re -s $((`date +%Y`+1))`date +%m%d`
 
+    echo " *** checks after cleanreg"
    assertImageExists "consul" 1
    assertImageExists "consul" 2
    assertImageExists "consul" 3
-   
+
    assertImageNotExists "elasticsearch" 1
    assertImageNotExists "elasticsearch" 2
    assertImageExists "elasticsearch" 3
-   
+
    assertImageNotExists "alpine" 1
    assertImageNotExists "alpine" 2
    assertImageExists "alpine" 3

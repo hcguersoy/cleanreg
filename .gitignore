@@ -2,3 +2,4 @@
 test/testlog.txt
 .DS_Store
 venv
+.python-version

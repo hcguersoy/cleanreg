@@ -1,14 +1,24 @@
 #!/bin/bash
 
 if [[ -z $CLEANREG_WORKSPACE ]]; then
-    echo "Workspace env variable not set. Expected env variable CLEANREG_WORKSPACE=<directory of cleanreg.py>"  
-    exit 1 
+    echo "Workspace env variable not set. Expected env variable CLEANREG_WORKSPACE=<directory of cleanreg.py>"
+    exit 1
+fi
+
+# Sanity check if the defined path is correct
+if [[ ! -f "${CLEANREG_WORKSPACE}/cleanreg.py" ]]; then
+    echo "cleanreg.py not found in \$CLEANREG_WORKSPACE (${CLEANREG_WORKSPACE})."
+    exit 2
 fi
 
 #Read directoryname of this script
-DIRNAME=$CLEANREG_WORKSPACE/test/config/
+DIRNAME=$CLEANREG_WORKSPACE/test/config
 DOCKERFILEPATH="$DIRNAME/docker-registry"
-#REGISTRYDATA="$DIRNAME/registrydata"
+
+# Some output for information
+echo "Workspace                   : ${CLEANREG_WORKSPACE}"
+echo "Config directory            : ${DIRNAME}"
+echo "Used Dockerfile for registry: ${DOCKERFILEPATH}"
 
 #######################################
 # Creates an image for the cleanreg script.
@@ -96,7 +106,8 @@ function startRegistry {
 #   None
 #######################################
 function stopRegistry {
-  docker rm -f registry
+   echo "Stopping registry"
+   docker rm -f registry
 }
 
 #######################################

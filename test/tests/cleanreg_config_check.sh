@@ -10,12 +10,12 @@ oneTimeSetUp() {
    tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
 abc:
     keepimages: 2
-    keepsince: `date +%Y%m%d`
+    keepsince: $(date +%Y%m%d)
 EOF
 }
 
 oneTimeTearDown() {
-  echo "Good bye"
+  echo " **** Good bye ****"
   stopRegistry
 }
 

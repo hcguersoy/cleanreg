@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 #######################################
 #Runs a testfile within the testrunner container
@@ -22,14 +21,18 @@ chmod -R +x ./tests
 cd ..
 
 #Run the testfiles
-runTestFile simple_clean.sh 2.5.1
-sleep 5
-runTestFile simple_clean.sh 2.6.1
-sleep 5
-runTestFile simple_clean.sh latest
 
 sleep 5
-runTestFile clean_full_catalog.sh 2.6.1
+runTestFile simple_clean.sh 2.7.1
 
 sleep 5
-runTestFile cleanreg_config_check.sh 2.6.1
+runTestFile simple_clean.sh 2.8.0
+
+sleep 5
+runTestFile clean_full_catalog.sh 2.7.1
+
+sleep 5
+runTestFile clean_full_catalog.sh 2.8.0
+
+sleep 5
+runTestFile cleanreg_config_check.sh 2.8.0
