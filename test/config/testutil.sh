@@ -38,7 +38,7 @@ function createCleanregImage {
 # Arguments:
 #   Arguments will be passed to cleanreg
 function runCleanreg {
-   docker run --rm -it --net=host cleanreg --assume-yes -r http://localhost:5000 -v $@
+   docker run --rm --net=host cleanreg --assume-yes -r http://localhost:5000 -v $@
 }
 
 #######################################
@@ -131,7 +131,7 @@ function startRegistryBasicAuth {
 #   None
 #######################################
 function runGarbageCollection {
-   docker exec -it registry bin/registry garbage-collect /etc/docker/registry/config.yml
+   docker exec registry bin/registry garbage-collect /etc/docker/registry/config.yml
 }
 
 #######################################

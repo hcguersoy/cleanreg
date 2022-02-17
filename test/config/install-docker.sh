@@ -4,7 +4,7 @@ set -e
 set -x
 
 linux_arch=$( arch)
-echo "Arcghitecture is ${linux_arch}"
+echo "Architecture is ${linux_arch}"
 case "$linux_arch" in
   aarch64|arm64)
     package_arch=arm64
