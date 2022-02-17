@@ -17,6 +17,7 @@ function runTestFile {
 
 #Create the testrunner image
 docker build -t testrunner -f ./config/Dockerfile.testrunner ./config
+echo "Finished building testrunner"
 chmod -R +x ./tests
 cd ..
 
