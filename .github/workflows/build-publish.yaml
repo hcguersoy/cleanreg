@@ -1,0 +1,30 @@
+name: Build and Publish cleanreg
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'pr/**'
+      - 'feature/**'
+    paths-ignore:
+      - 'README.md'
+
+  release:
+    types: [published]
+
+  workflow_dispatch:
+
+jobs:
+
+  test-cleanreg:
+    runs-on: 'ubuntu-20.04'
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - run: |
+          cd test
+          chmod +x runAllTests.sh
+          ./runAllTests.sh
+        shell: bash
