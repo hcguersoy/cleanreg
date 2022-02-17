@@ -27,4 +27,5 @@ jobs:
           cd test
           chmod +x runAllTests.sh
           ./runAllTests.sh
-        shell: bash
+        name: Execute tests
+        shell: bash --noprofile --norc {0}
