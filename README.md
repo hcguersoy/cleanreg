@@ -9,6 +9,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
+* v0.7.1 - Added a `--skip-tls-verify` attribute
 * v0.7 - This is a release which breaks some stuff (configuration file is now yaml based), adding new options for keeping images (e.g. `--since`, `--regex`) (thanks to @JulianSauer for his [PR10](https://github.com/hcguersoy/cleanreg/pull/10))
 * v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thanks @kekru for his PR)
 * v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
@@ -94,6 +95,9 @@ optional arguments:
   -c CACERT, --cacert CACERT
                         Path to a valid CA certificate file. This is needed if
                         self signed TLS is used in the registry server.
+  -sv, --skip-tls-verify
+                        If set insecure TLS is allowed, so no need for
+                        a valid cert to verify.
   -i, --ignore-ref-tags
                         Ignore a digest if it is referenced multiple times in
                         the whole registry server. In this case, a list of all
