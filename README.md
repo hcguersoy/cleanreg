@@ -9,7 +9,7 @@ Information about the needed garbage collection is described at [https://docs.do
 
 ## History
 
-* v0.8 - Migration to Python 3 and Github Actions
+* v0.8.0 - Finally find the time to migrate to Python 3 and Github Actions. This comes this many changes in the code and the surrounding build system. Support for `linux\arm64` added.
 * v0.7.1 - Added a `--skip-tls-verify` attribute (_unreleased_)
 * v0.7 - This is a release which breaks some stuff (configuration file is now yaml based), adding new options for keeping images (e.g. `--since`, `--regex`) (thanks to @JulianSauer for his [PR10](https://github.com/hcguersoy/cleanreg/pull/10))
 * v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thanks @kekru for his PR)
@@ -20,7 +20,7 @@ Information about the needed garbage collection is described at [https://docs.do
 * v0.2 - added support for registry server using self signed certificates
 * v0.1 - first version with basics
 
-## Prerequisites and supported Plattform
+## Prerequisites and supported Platform
 
 You need Docker and a Docker registry system which implements the Registry API v2.
 For Docker Registry v2 API specification see [https://docs.docker.com/registry/spec/api/](https://docs.docker.com/registry/spec/api/).
@@ -29,7 +29,9 @@ Be sure to configure your registry server to allow deletion (see [https://docs.d
 
 ## Usage
 
-Download the file *cleanreg.py* or clone this repository to a local directory or pull the docker image. This is the suggested way to run `cleanreg`!
+Download the file _cleanreg.py_ or clone this repository to a local directory or pull the docker image.
+Beginning with version `v0.0.8`, images are supported for `linux/amd64` and (this is new) `linux\arm64`.
+This is the suggested way to run `cleanreg`!
 
 ```shell
 docker pull hcguersoy/cleanreg:v0.8.0
@@ -160,7 +162,7 @@ Will only delete the image mysql which is tagged as latest.
 docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql:.*temp.* -re -d 2018-01-01 -k 5 -i
 ```
 
-Removes all images that contain the word "temp" in their tagnames and if they were created before 2018 but at least 5 will be kept in total.
+Removes all images that contain the word "temp" in their tag's and if they were created before 2018 but at least 5 will be kept in total.
 
 ```shell
 docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
@@ -224,11 +226,11 @@ There is a simple script added to create multiple image tags (based on `busybox`
 If you have installed a _semi secure_ registry server using TLS and self signed certificates you have to provide the path to the CA certificate file:
 
 ```shell
-./cleanreg.py -r https://192.168.56.3:5000 -c /my/certifacates/ca.pem -f cleanreg-example.conf -i
+./cleanreg.py -r https://192.168.56.3:5000 -c /my/certificates/ca.pem -f cleanreg-example.conf -i
 ```
 
 If you run _cleanreg_ in a container you should not forget to mount the certificate file into the container like the configuration file above.
-Alternatively you can set the option `--skip-tls-verify`. In this case, you don't need to provide a certifictae.
+Alternatively you can set the option `--skip-tls-verify`. In this case, you don't need to provide a certificate.
 
 > :exclamation: be aware that this should only used for (local) testing but not for productive environments.
 
@@ -238,7 +240,7 @@ If your registry is protected with basic auth and the username is `test` and the
 ./cleanreg.py -r https://192.168.56.3:5000 -u test -pw secret -f cleanreg-example.conf
 ```
 
-## Runing Garbage Collection
+## Running Garbage Collection
 
 Example on running the garbage collection:
 
@@ -258,7 +260,8 @@ The registry itself should be stopped before running this.
 Feel free to contribute your changes as a PR. Please ensure that the tests run without errors and provide tests for additional functionality.
 
 This tool was initially implemented and tested on Ubuntu Linux 16.04 and on MacOS 10.13 using Python 2.7 and migrated to Python 3.10 on macOS 12 (arm64).
-It is developed and tested against Docker Registry versions [2.7.1](https://github.com/docker/distribution/releases/tag/v2.7.1)and [2.8.0](https://github.com/docker/distribution/releases/tag/v2.8.8). It should work with older registry versions but they are not tested.
+It is developed and tested against Docker Registry versions [v2.7.1](https://github.com/docker/distribution/releases/tag/v2.7.1) and [v2.8.0](https://github.com/docker/distribution/releases/tag/v2.8.8).
+It should work with older registry versions which are supporting the API, but they are not tested anymore.
 
 You need to install the Python modules _requests_ and _PyYAML_:
 
@@ -268,7 +271,7 @@ $ pip install requests PyYAML
 
 Be sure to configure your registry server to allow deletion (see [https://docs.docker.com/registry/configuration/#delete](https://docs.docker.com/registry/configuration/#delete)).
 
-### Run tests
+### Run tests locally
 
 Prerequisites:
 
@@ -299,3 +302,12 @@ cd test/tests
 export REGISTRYTAG=2.5.1
 ./simple_clean.sh
 ```
+
+### GitHub Actions
+
+After pushing to `master` or a branch `feature\*` or `pr\*` a GitHub Action will be triggered which runs the tests defined in `test/runAllTests.sh`. If one of these tests fail, the action will fail, too.
+If the build was triggered due to the creation of a release, a GitHub Action will be triggered, too. In this case, after running successfully the tests, the Docker image will be build with the help of _buildx_.
+Currently, two kinds of architectures are supported: `linux/amd64` and `linux/arm64`.
+The later one could be used on Apple Silicon systems this the according runtime, e. g. Rancher Desktop.
+
+> Due to lack of knowledge regarding other ARM systems (e. g. Raspberry Pi) you are very welcome to provide a PR.

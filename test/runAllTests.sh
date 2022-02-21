@@ -19,19 +19,17 @@ function runTestFile {
 #Create the testrunner image
 docker build -t testrunner -f ./config/Dockerfile.testrunner ./config
 echo "Finished building testrunner"
+
 chmod -R +x ./tests
 cd ..
 
 #Run the testfiles
-
 sleep 5
+echo "Starting tests"
 runTestFile simple_clean.sh 2.7.1
 
 sleep 5
 runTestFile simple_clean.sh 2.8.0
-
-sleep 5
-runTestFile clean_full_catalog.sh 2.7.1
 
 sleep 5
 runTestFile clean_full_catalog.sh 2.8.0
