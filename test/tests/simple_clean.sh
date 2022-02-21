@@ -1,4 +1,5 @@
 #!/bin/bash
+setopt shwordsplit
 
 source ../config/testutil.sh
 
@@ -8,8 +9,13 @@ setUp() {
    createCleanregImage
 }
 
+# is ignored...
 teardown() {
-  echo "Good bye"
+  stopRegistry
+}
+
+oneTimeTearDown() {
+  echo " **** Good bye **** "
   stopRegistry
 }
 

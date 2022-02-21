@@ -4,7 +4,7 @@ import sys
 import os
 import requests
 import argparse
-from urlparse import urlparse
+from urllib.parse import urlparse
 import re
 import json
 import collections
@@ -15,13 +15,14 @@ from multiprocessing import Manager, Process, Pool, current_process
 from itertools import islice
 from functools import partial
 
-__author__ = 'Halil-Cem Guersoy <hcguersoy@gmail.com>, ' \
-             'Kevin Krummenauer <kevin@whiledo.de>', \
-             'Marvin becker <mail@derwebcoder.de>', \
-             'Julian Sauer (https://github.com/JulianSauer)'
+__author__ = 'Halil-Cem Guersoy (https://github.com/hcguersoy), ' \
+             'Kevin Krummenauer (https://github.com/kekru)', \
+             'Marvin becker (https://github.com/derwebcoder)', \
+             'Julian Sauer (https://github.com/JulianSauer)', \
+             'Jonas Tschoche (https://github.com/Jonas18175)'
 __license__ = '''
 ------------------------------------------------------------------------------
-Copyright 2017
+Copyright 2022
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -102,7 +103,7 @@ def parse_arguments():
 
     # hackish dependent arguments
     # Either using reponame/clean_full_catalog or keepimages/regex/since is not allowed unless using a reposfile with a regular expression
-    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages is not 0 or args.regex is True or args.since is not None):
+    if (bool(args.reponame) or args.clean_full_catalog) ^ (args.keepimages != 0 or args.regex == True or args.since != None):
         if not (bool(args.reposfile) and args.regex):
             parser.error("[-n] or [-cf] have to be used together with [-k], [-re] or [-s].")
 
@@ -136,10 +137,10 @@ def parse_date(date_string):
 
 
 def update_progress(current, maximum, factor=2):
-    if maximum is 0:
+    if maximum == 0:
         raise Exception('Maximum amount should not be zero.')
-    progress = (100 * current) / maximum
-    sys.stdout.write('\r{0}>> {1}%'.format('=' * (progress / factor), progress))
+    progress = round((100 * current) / maximum)
+    sys.stdout.write('\r{0}>> {1}%'.format('=' * (int(progress / factor)), progress))
     sys.stdout.flush()
 
 
@@ -169,7 +170,7 @@ def query_yes_no(question, default="no"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower()
+        choice = input().strip().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -181,7 +182,7 @@ def query_yes_no(question, default="no"):
 
 def print_headers(headers):
     for header_element in headers:
-        print "  > {0}   ->  {1}".format(header_element, headers.get(header_element))
+        print ("  > {0}   ->  {1}".format(header_element, headers.get(header_element)))
 
 
 def is_v2_registry(verbose, regserver, cacert=None):
@@ -194,14 +195,14 @@ def is_v2_registry(verbose, regserver, cacert=None):
     """
 
     if verbose > 0:
-        print 'Check if registry server supports v2...'
+        print ('Check if registry server supports v2...')
     check_url = regserver
 
     check_result = requests.get(check_url, verify=cacert, auth=get_auth())
 
     if verbose > 1:
-        print "Check result code:", check_result.status_code
-        print "Headers"
+        print ("Check result code:", check_result.status_code)
+        print ("Headers")
         print_headers(check_result.headers)
 
     # check if result header contains API version
@@ -213,16 +214,16 @@ def is_v2_registry(verbose, regserver, cacert=None):
 
     if check_result.status_code == requests.codes.ok and has_api_v2:
         if verbose > 0:
-            print "Registry server supports v2!"
+            print ("Registry server supports v2!")
         return True
     elif check_result.status_code == requests.codes.ok and has_api_v2 is False:
-        print "This is really strange... someone fakes you?"
+        print ("This is really strange... someone fakes you?")
         return False
     elif check_result.status_code != requests.codes.ok and has_api_v2 is False:
-        print "This is not a v2 registry server: ", regserver
+        print ("This is not a v2 registry server: ", regserver)
         return False
     elif check_result.status_code != requests.codes.ok and has_api_v2:
-        print "Found a v2 repo but return code is ", check_result.status_code
+        print ("Found a v2 repo but return code is ", check_result.status_code)
         return False
 
 
@@ -257,30 +258,30 @@ def get_digest_by_tag(verbose, regserver, repository, tag, cacert=None):
     req_headers = generate_request_headers()
     req_url = regserver + repository + "/manifests/" + tag
     if verbose > 1:
-        print "Will use following URL to retrieve digest:", req_url
+        print ("Will use following URL to retrieve digest:", req_url)
     head_result = requests.head(req_url, headers=req_headers, verify=cacert, auth=get_auth())
 
     head_status = head_result.status_code
     if verbose > 2:
-        print "Digest head result status code is:", head_status
-        print "Digest head header is:"
+        print ("Digest head result status code is:", head_status)
+        print ("Digest head header is:")
         print_headers(head_result.headers)
 
     # check the return code and exit if not OK
     if head_status != requests.codes.ok:
-        print "The digest could not be retrieved due to error:", head_status
+        print ("The digest could not be retrieved due to error:", head_status)
         if verbose > 0:
-            print head_result
+            print (head_result)
         sys.exit(2)
     # if the header doesn't contains the digest information exit, too
     if 'Docker-Content-Digest' not in head_result.headers:
-        print "Could not find any digest information in the header. Exiting"
+        print ("Could not find any digest information in the header. Exiting")
         sys.exit(3)
     # everything looks fine so we continue
     cur_digest = head_result.headers['Docker-Content-Digest']
 
     if verbose > 0:
-        print "Digest for image {0}:{1} is [{2}]".format(repository, tag, cur_digest)
+        print ("Digest for image {0}:{1} is [{2}]".format(repository, tag, cur_digest))
 
     return cur_digest
 
@@ -305,23 +306,23 @@ def delete_manifest(verbose, regserver, repository, cur_digest, cacert=None):
     # s. https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
     del_status_ok = 202
     if verbose > 1:
-        print "Will use following URL to delete manifest:", req_url
+        print ("Will use following URL to delete manifest:", req_url)
     delete_result = requests.delete(req_url, headers=req_headers, verify=cacert, auth=get_auth())
     delete_status = delete_result.status_code
     if verbose > 1:
-        print "Delete result status code is:", delete_status
+        print ("Delete result status code is:", delete_status)
     if verbose > 2:
-        print "Delete result header is:"
+        print ("Delete result header is:")
         print_headers(delete_result.headers)
 
     if delete_status != del_status_ok:
-        print "The manifest could not be deleted due to an error:", delete_status
+        print ("The manifest could not be deleted due to an error:", delete_status)
         if verbose > 1:
-            print delete_result
+            print (delete_result)
         sys.exit(12)
 
     if verbose > 0:
-        print "Deleted manifest with digest", cur_digest
+        print ("Deleted manifest with digest", cur_digest)
 
 
 def deletion_digests(verbose, del_tags, digests_counts, ignore):
@@ -340,7 +341,7 @@ def deletion_digests(verbose, del_tags, digests_counts, ignore):
     for tag, data in del_tags.items():
         if ignore is True and digests_counts[data['digest']] > 1:
             if verbose > 0:
-                print "Ignoring digest {0} as it is referenced multiple times!".format(data['digest'])
+                print ("Ignoring digest {0} as it is referenced multiple times!".format(data['digest']))
         else:
             deletion_digests.append(data['digest'])
 
@@ -357,23 +358,23 @@ def get_all_repos(verbose, regserver, cacert=None):
     """
     req_url = regserver + "_catalog"
     if verbose > 1:
-        print "Will use URL {0} to retrieve a list of all repositories:".format(req_url)
+        print ("Will use URL {0} to retrieve a list of all repositories:".format(req_url))
     repos_result = requests.get(req_url, verify=cacert, auth=get_auth())
     repos_status = repos_result.status_code
     if args.verbose > 2:
-        print "Get catalog result is:", repos_status
+        print ("Get catalog result is:", repos_status)
 
     # check the return code and exit if not OK
     if repos_status != requests.codes.ok:
-        print "The tags could not be retrieved due to error:", repos_status
+        print ("The tags could not be retrieved due to error:", repos_status)
         if args.verbose > 0:
-            print repos_result
+            print (repos_result)
         sys.exit(2)
     repos_result_json = repos_result.json()
 
     repos_all = repos_result_json['repositories']
     if verbose > 1:
-        print "Found repos: {0} ".format(repos_all)
+        print ("Found repos: {0} ".format(repos_all))
 
     return repos_all
 
@@ -394,8 +395,8 @@ def create_repo_list(cmd_args, regserver):
 
     if bool(cmd_args.reponame) is True:
         if cmd_args.verbose > 1:
-            print "In single repo mode."
-            print "Will keep matching images from repo {0}".format(cmd_args.reponame)
+            print ("In single repo mode.")
+            print ("Will keep matching images from repo {0}".format(cmd_args.reponame))
 
         splittedNames = cmd_args.reponame.split(':')
         repo = splittedNames[0]
@@ -405,11 +406,11 @@ def create_repo_list(cmd_args, regserver):
         found_repos_counts[repo] = (cmd_args.keepimages, tagname, cmd_args.since)
 
         if cmd_args.verbose > 2:
-            print "repos_counts: ", found_repos_counts
+            print ("repos_counts: ", found_repos_counts)
 
     if cmd_args.clean_full_catalog is True:
         if cmd_args.verbose > 1:
-            print "Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages)
+            print ("Importing all repos of the registries catalog, keeping {0} images per repo.".format(cmd_args.keepimages))
         for repo in all_registry_repos:
             splittedNames = repo.split(':')
             repo = splittedNames[0]
@@ -420,12 +421,12 @@ def create_repo_list(cmd_args, regserver):
 
     if bool(args.reposfile) is True:
         if cmd_args.verbose > 1:
-            print "Will read repo information from file {0}".format(cmd_args.reposfile)
+            print ("Will read repo information from file {0}".format(cmd_args.reposfile))
         with open(cmd_args.reposfile) as repoFile:
-            repos = yaml.load(repoFile)
-            for repoName in repos.iterkeys():
+            repos = yaml.safe_load(repoFile)
+            for repoName in repos:
                 if cmd_args.verbose > 2:
-                    print "Reading config for {0}: {1}".format(repoName, repos.get(repoName))
+                    print ("Reading config for {0}: {1}".format(repoName, repos.get(repoName)))
                 try:
                     tagName = str(repos[repoName]['tag'])
                 except KeyError:
@@ -440,20 +441,21 @@ def create_repo_list(cmd_args, regserver):
                     since = ""
 
                 if cmd_args.verbose > 2:
-                    print "    Parsed to:"
-                    print "    tagname: {0}, keepimages: {1}, since: {2}".format(tagName, keep, since)
+                    print ("    Parsed to:")
+                    print ("    tagname: {0}, keepimages: {1}, since: {2}".format(tagName, keep, since))
 
                 found_repos_counts[repoName] = (keep, tagName, since)
 
     if cmd_args.verbose > 1:
-        print "These repos will be processed:"
-        print found_repos_counts
+        print ("These repos will be processed:")
+        print (found_repos_counts)
 
-    for repo in found_repos_counts.keys():
+    iter_found_repos_count = found_repos_counts.copy()
+    for repo in iter_found_repos_count:
         if repo not in all_registry_repos:
             del found_repos_counts[repo]
             if cmd_args.verbose > 1:
-                print "Skipping repo {0} because it is not in the catalog.".format(repo)
+                print ("Skipping repo {0} because it is not in the catalog.".format(repo))
 
     if cmd_args.ignoretag is True:
         repos = all_registry_repos
@@ -466,7 +468,7 @@ def retrieve_metadata(tag, verbose, regserver, repo, managed_tags_date_digests,
                       managed_digests, cacert):
 
     if verbose > 2:
-        print "Processing in", current_process()
+        print ("Processing in", current_process())
 
     metadata_request = regserver + repo + "//manifests/" + tag
     metadata_header = {'Accept': 'application/vnd.docker.distribution.manifest.v1+json'}
@@ -479,7 +481,7 @@ def retrieve_metadata(tag, verbose, regserver, repo, managed_tags_date_digests,
     managed_digests.append(digest)
 
     if verbose > 2:
-        print "Added {0} to tag {1} on repo {2}".format(managed_tags_date_digests[tag], tag, repo)
+        print ("Added {0} to tag {1} on repo {2}".format(managed_tags_date_digests[tag], tag, repo))
 
     return managed_tags_date_digests, managed_digests
 
@@ -503,31 +505,31 @@ def get_tags_dates_digests_byrepo(verbose, regserver, repo, results, digests, md
 
     req_url = regserver + repo + "/tags/list"
     if verbose > 1:
-        print "Will use URL {0} to retrieve tags for repo {1}:".format(req_url, repo)
+        print ("Will use URL {0} to retrieve tags for repo {1}:".format(req_url, repo))
     tags_result = requests.get(req_url, verify=cacert, auth=get_auth())
     tags_status = tags_result.status_code
     if args.verbose > 2:
-        print "Get tags result is:", tags_status
+        print ("Get tags result is:", tags_status)
     # check the return code and exit if not OK
     if tags_status != requests.codes.ok:
-        print "The tags could not be retrieved due to error:", tags_status
+        print ("The tags could not be retrieved due to error:", tags_status)
         if args.verbose > 0:
-            print tags_result
+            print (tags_result)
         sys.exit(2)
     tags_result_json = tags_result.json()
 
     tags_all = tags_result_json['tags']
     if verbose > 1:
-        print "Found tags for repo {0}: {1} ".format(repo, tags_all)
+        print ("Found tags for repo {0}: {1} ".format(repo, tags_all))
 
     if tags_all is None:
         amount_tags = 0
     else:
         amount_tags = len(tags_all)
     if verbose > 2:
-        print "amount_tags : ", amount_tags
+        print ("amount_tags : ", amount_tags)
     if verbose > 0:
-        print "Retrieving metada for repository ", repo
+        print ("Retrieving metada for repository ", repo)
 
     funcpart = partial(retrieve_metadata, verbose=verbose, regserver=regserver, repo=repo,
                        managed_tags_date_digests=managed_tags_date_digests,
@@ -561,11 +563,11 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
     managed_digests = manager.list()
     procs = []
 
-    print "Retrieving tags and digests. Be patient, this can take a little bit time."
+    print ("Retrieving tags and digests. Be patient, this can take a little bit time.")
 
     for repo in repositories:
         if verbose > 0:
-            print "Starting procs for {0}".format(repo)
+            print ("Starting procs for {0}".format(repo))
 
         # start a process to retrieve the needed data
         proc = Process(target=get_tags_dates_digests_byrepo, args=(verbose, regserver, repo, repos_tags_digest,
@@ -575,12 +577,12 @@ def get_all_tags_dates_digests(verbose, regserver, repositories, md_workers, cac
 
     for proc in procs:
         if verbose > 1:
-            print "Waiting for {0} to be finished.".format(proc)
+            print ("Waiting for {0} to be finished.".format(proc))
         proc.join()
 
     for repo in repositories:
         if verbose > 0:
-            print "Retrieving results..."
+            print ("Retrieving results...")
         result[repo] = repos_tags_digest[repo]
 
     return result, managed_digests
@@ -601,12 +603,11 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
     :return: a dict of tags to be deleted, their digest and the date then they are created
     """
 
-    all_tags = collections.OrderedDict(sorted(tags_dates_digests.iteritems(), key=lambda x: x[1]['date']))
+    all_tags = collections.OrderedDict(sorted(tags_dates_digests.items(), key=lambda x: x[1]['date']))
     deletion_tags = {}
 
     if verbose > 3:
         print (json.dumps(all_tags, indent=2))
-        # for (k, v) in all_tags.iteritems():
 
     if all_tags is None:
         amount_tags = 0
@@ -617,41 +618,45 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
         keep_count = 0
 
     if verbose > 1:
-        print "Repo {0}: amount_tags : {1}; repo_count: {2}".format(repo, amount_tags, keep_count)
+        print ("Repo {0}: amount_tags : {1}; repo_count: {2}".format(repo, amount_tags, keep_count))
 
-    deletion_tags = all_tags
+    deletion_tags = all_tags.copy()
+    processed_tags = all_tags.copy()
     if regex and tagname != "":
         for tag in deletion_tags.keys():
             if not re.match(tagname, tag):
-                del deletion_tags[tag]
+                del processed_tags[tag]
     elif not regex and tagname != "":
-        deletion_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
+        processed_tags = {k: deletion_tags[k] for k in deletion_tags if tagname == k}
+
     if since is not None and since != "":
+        deletion_tags = processed_tags.copy()
         parsed_date = parse_date(since)
         for tag in deletion_tags.keys():
             tag_date = datetime.strptime(deletion_tags[tag]['date'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
-            print "Date: {0}".format(tag_date)
+            print ("Date: {0}".format(tag_date))
             if tag_date >= parsed_date:
-                del deletion_tags[tag]
+                del processed_tags[tag]
 
     # considers keep_count to check if too many images are marked for deletion
     delete_count = amount_tags - keep_count
-    if len(deletion_tags) > delete_count:
+    if len(processed_tags) > delete_count:
+        deletion_tags = processed_tags.copy()
         if amount_tags <= keep_count:
             # keep all images
-            deletion_tags.clear()
+            processed_tags.clear()
         else:
             # removes the last keep_count tags from deletion_tags
-            deletion_tags = collections.OrderedDict(islice(deletion_tags.iteritems(), delete_count))
+            processed_tags = collections.OrderedDict(islice(deletion_tags.items(), delete_count))
         if verbose > 1:
-            print
-            print "Deletion candidates for repo {0}".format(repo)
-            print (json.dumps(deletion_tags, indent=2))
+            print ()
+            print ("Deletion candidates for repo {0}".format(repo))
+            print (json.dumps(processed_tags, indent=2))
     else:
         if verbose > 0:
-            print "Skipping deletion in repo {0} because not enough images.".format(repo)
+            print ("Skipping deletion in repo {0} because not enough images.".format(repo))
 
-    return deletion_tags
+    return processed_tags
 
 # >>>>>>>>>>>>>>>> MAIN STUFF
 
@@ -663,7 +668,7 @@ if __name__ == '__main__':
 
     if args.proxy is False:
         if args.verbose > 1:
-            print "Will exclude registryserver location from proxy:", urlparse(args.registry).netloc
+            print ("Will exclude registryserver location from proxy:", urlparse(args.registry).netloc)
         os.environ['no_proxy'] = urlparse(args.registry).netloc
 
     if args.skip_tls_verify:
@@ -671,7 +676,7 @@ if __name__ == '__main__':
 
     # initially check if we've a v2 registry server
     if is_v2_registry(args.verbose, reg_server_api, args.cacert) is False:
-        print "Exiting, none V2 registry."
+        print ("Exiting, none V2 registry.")
         sys.exit(1)
 
     repos_counts, repos = create_repo_list(args, reg_server_api)
@@ -682,21 +687,21 @@ if __name__ == '__main__':
                                                                      args.md_workers, args.cacert)
 
     if args.verbose > 2:
-        print "List of all repos, tags, their creation dates and their digests:"
+        print ("List of all repos, tags, their creation dates and their digests:")
         print(json.dumps(repo_tags_dates_digest, indent=2))
-        print all_digests
+        print (all_digests)
 
     diggests_occurrences = collections.Counter(all_digests)
     digests_counts = dict(diggests_occurrences)
 
     repo_del_tags = {}
     repo_del_digests = {}
-    for repo, (count, tagname, since) in repos_counts.iteritems():
+    for repo, (count, tagname, since) in repos_counts.items():
         x += 1
         update_progress(x, len(repos_counts))
         if args.verbose > 0:
-            print
-            print "will delete repo {0} and keep at least {1} images.".format(repo, count)
+            print ()
+            print ("will delete repo {0} and keep at least {1} images.".format(repo, count))
         del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, tagname, count, args.regex, since)
 
         if len(del_tags) > 0:
@@ -705,24 +710,24 @@ if __name__ == '__main__':
 
     answer = True
     if args.assumeyes is False and args.quiet is False and len(repo_del_digests) > 0:
-        print
-        print "Repos and according digests to be deleted:"
-        for repo, del_digests in repo_del_digests.iteritems():
-            print "Repository: ", repo
+        print ()
+        print ("Repos and according digests to be deleted:")
+        for repo, del_digests in repo_del_digests.items():
+            print ("Repository: ", repo)
             for digest in del_digests:
-                print "     {0}".format(digest)
+                print ("     {0}".format(digest))
         answer = query_yes_no("Do you realy want to delete them?")
 
     if answer is True and len(repo_del_digests) > 0:
-        print "Deleting!"
-        for repo, del_digests in repo_del_digests.iteritems():
+        print ("Deleting!")
+        for repo, del_digests in repo_del_digests.items():
             for digest in del_digests:
-                print "Deleting ", digest
+                print ("Deleting ", digest)
                 delete_manifest(args.verbose, reg_server_api, repo, digest, args.cacert)
     else:
-        print "Aborted by user or nothing to delete."
+        print ("Aborted by user or nothing to delete.")
         sys.exit(1)
 
-    print
-    print "Finished"
+    print ()
+    print ("Finished")
     sys.exit(0)
