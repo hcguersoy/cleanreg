@@ -19,7 +19,8 @@ __author__ = 'Halil-Cem Guersoy (https://github.com/hcguersoy), ' \
              'Kevin Krummenauer (https://github.com/kekru)', \
              'Marvin becker (https://github.com/derwebcoder)', \
              'Julian Sauer (https://github.com/JulianSauer)', \
-             'Jonas Tschoche (https://github.com/Jonas18175)'
+             'Jonas Tschoche (https://github.com/Jonas18175)', \
+             'Basilio Vera (https://github.com/bvis)'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2022
