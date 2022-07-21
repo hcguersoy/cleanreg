@@ -634,7 +634,10 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
         deletion_tags = processed_tags.copy()
         parsed_date = parse_date(since)
         for tag in deletion_tags.keys():
-            tag_date = datetime.strptime(deletion_tags[tag]['date'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+            deletion_tag_date = deletion_tags[tag]['date']
+            if (deletion_tag_date.endswith('Z')):
+                deletion_tag_date = deletion_tag_date[:-1]
+            tag_date = datetime.strptime(deletion_tag_date.split('.')[0], '%Y-%m-%dT%H:%M:%S')
             print ("Date: {0}".format(tag_date))
             if tag_date >= parsed_date:
                 del processed_tags[tag]
