@@ -3,7 +3,7 @@ name: Build and Publish cleanreg
 on:
   push:
     branches:
-      - 'main'
+      - 'master'
       - 'pr/**'
       - 'feature/**'
     paths-ignore:
