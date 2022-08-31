@@ -260,7 +260,7 @@ The registry itself should be stopped before running this.
 Feel free to contribute your changes as a PR. Please ensure that the tests run without errors and provide tests for additional functionality.
 
 This tool was initially implemented and tested on Ubuntu Linux 16.04 and on MacOS 10.13 using Python 2.7 and migrated to Python 3.10 on macOS 12 (arm64).
-It is developed and tested against Docker Registry versions [v2.7.1](https://github.com/docker/distribution/releases/tag/v2.7.1) and [v2.8.0](https://github.com/docker/distribution/releases/tag/v2.8.8).
+It is developed and tested against Docker Registry version [v2.8.1](https://github.com/distribution/distribution/releases/tag/v2.8.1). The testing with older versions is dropped version 0.8.1.
 It should work with older registry versions which are supporting the API, but they are not tested anymore.
 
 You need to install the Python modules _requests_ and _PyYAML_:

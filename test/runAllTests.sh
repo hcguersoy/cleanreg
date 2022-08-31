@@ -26,13 +26,12 @@ cd ..
 #Run the testfiles
 sleep 5
 echo "Starting tests"
-runTestFile simple_clean.sh 2.7.1
 
 sleep 5
-runTestFile simple_clean.sh 2.8.0
+runTestFile simple_clean.sh 2.8.1
 
 sleep 5
-runTestFile clean_full_catalog.sh 2.8.0
+runTestFile clean_full_catalog.sh 2.8.1
 
 sleep 5
-runTestFile cleanreg_config_check.sh 2.8.0
+runTestFile cleanreg_config_check.sh 2.8.1
