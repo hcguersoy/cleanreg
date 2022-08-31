@@ -1,6 +1,9 @@
 
 # Registry Cleaner
 
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
+[![cleanreg](https://github.com/hcguersoy/cleanreg/actions/workflows/build-publish.yaml/badge.svg)](https://github.com/hcguersoy/cleanreg/actions/workflows/build-publish.yaml)
+
 This is a small tool to delete tags, or, to be more correct, delete image manifests, from a Docker Registry implementing the API v2.
 
 Please be aware of that this is a soft delete. You've to run the registry garbage collection after this tool has been applied.
