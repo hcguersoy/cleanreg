@@ -8,7 +8,7 @@
 #######################################
 function runTestFile {
    echo "Running testfile ${1} with registry version ${2}"
-   docker run --rm -e REGISTRYTAG=$2 --net=host -v $(pwd):/workspace -e CLEANREG_WORKSPACE=/workspace -v /var/run/docker.sock:/var/run/docker.sock:ro testrunner "cd /workspace/test/tests; ls -la; ./$1"
+   docker run --rm -e REGISTRYTAG="$2" --net=host -v $(pwd):/workspace -e CLEANREG_WORKSPACE=/workspace -v /var/run/docker.sock:/var/run/docker.sock:ro testrunner "cd /workspace/test/tests; ls -la; ./$1"
    EXITCODE=$?
    if [[ $EXITCODE -ne 0 ]]; then
       echo "Test failure"

@@ -99,7 +99,7 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 5
 
    #cleanreg with todays date sholdn't delete any images
-   runCleanreg -n abc -s $((`date +%Y`-1))`date '+%m%d'` -i
+   runCleanreg -n abc -s $(($(date +%Y)-1))$(date '+%m%d') -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3
@@ -107,7 +107,7 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 5
 
    #same test with different date format
-   runCleanreg -n abc -s $((`date +%Y`-1))`date '+-%m-%d'` -i
+   runCleanreg -n abc -s $(($(date +%Y)-1))$(date '+-%m-%d') -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3
@@ -115,7 +115,7 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 5
 
    #same test with different date format
-   runCleanreg -n abc -s $((`date +%Y`-1))`date '+%m%dT000000'` -i
+   runCleanreg -n abc -s $(($(date +%Y)-1))$(date '+%m%dT000000') -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3
@@ -123,7 +123,7 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 5
 
    #same test with different date format
-   runCleanreg -n abc -s $((`date +%Y`-1))`date '+-%m-%dT00:00:00'` -i
+   runCleanreg -n abc -s $(($(date +%Y)-1))$(date '+-%m-%dT00:00:00') -i
    assertImageExists "abc" 1
    assertImageExists "abc" 2
    assertImageExists "abc" 3
@@ -131,7 +131,7 @@ testCleanASingleRepoDate() {
    assertImageExists "abc" 5
 
    #cleanreg with a date in the future should delete all images
-   runCleanreg -n abc -s $((`date +%Y`+1))`date +%m%d` -i
+   runCleanreg -n abc -s $(($(date +%Y)+1))$(date +%m%d) -i
    assertImageNotExists "abc" 1
    assertImageNotExists "abc" 2
    assertImageNotExists "abc" 3

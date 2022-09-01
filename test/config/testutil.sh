@@ -72,8 +72,8 @@ function createRegistryImages {
 
    echo "Using Docker Registry in version $REGTAG. You can define the version by setting the REGISTRYTAG env variable"
 
-   docker build -t registry-default   --build-arg TAG=$REGTAG -f $DOCKERFILEPATH/Dockerfile-default $DOCKERFILEPATH
-   docker build -t registry-basicauth --build-arg BASEIMAGE=registry-default -f $DOCKERFILEPATH/Dockerfile-basicauth $DOCKERFILEPATH
+   docker build -t registry-default   --build-arg TAG=$REGTAG -f "$DOCKERFILEPATH"/Dockerfile-default "$DOCKERFILEPATH"
+   docker build -t registry-basicauth --build-arg BASEIMAGE=registry-default -f "$DOCKERFILEPATH"/Dockerfile-basicauth "$DOCKERFILEPATH"
 
 }
 
@@ -166,13 +166,13 @@ function createTestdata {
    echo "Creating tags from $TAGBEGIN to $TAGEND for image localhost:5000/$IMAGENAME"
 
    # tag it multiple times...
-   for i in `seq ${TAGBEGIN} ${TAGEND}`
+   for i in $(seq ${TAGBEGIN} ${TAGEND})
    do
       echo "Creating image with tag ${i}"
-      docker build --quiet --rm -t localhost:5000/${IMAGENAME}:${i} --build-arg tag=${i} --no-cache=true ${DIRNAME}/dummybox
-      docker push localhost:5000/${IMAGENAME}:${i}
+      docker build --quiet --rm -t localhost:5000/"${IMAGENAME}":"${i}" --build-arg tag="${i}" --no-cache=true "${DIRNAME}"/dummybox
+      docker push localhost:5000/"${IMAGENAME}":"${i}"
       # remove local copy
-      docker rmi -f localhost:5000/${IMAGENAME}:${i}
+      docker rmi -f localhost:5000/"${IMAGENAME}":"${i}"
    done
 }
 
@@ -210,22 +210,22 @@ function createIdenticalTestdata {
    echo "Creating tags from $TAGBEGIN to $TAGEND for image localhost:5000/$IMAGENAME"
 
    # Build a image and tag it multiple times...
-   for i in `seq ${TAGBEGIN} ${TAGEND}`
+   for i in $(seq ${TAGBEGIN} ${TAGEND})
    do
       echo "Creating image with tag ${i}"
       if [ "$TAGBEGIN" -eq "${i}" ]
       then
-        docker build --quiet --rm -t localhost:5000/${IMAGENAME}:${TAGBEGIN} --build-arg tag=${TAGBEGIN} --no-cache=true ${DIRNAME}/dummybox
+        docker build --quiet --rm -t localhost:5000/"${IMAGENAME}":${TAGBEGIN} --build-arg tag=${TAGBEGIN} --no-cache=true "${DIRNAME}"/dummybox
       else
-        docker tag localhost:5000/${IMAGENAME}:${TAGBEGIN} localhost:5000/${IMAGENAME}:${i}
+        docker tag localhost:5000/"${IMAGENAME}":${TAGBEGIN} localhost:5000/"${IMAGENAME}":"${i}"
       fi
-      docker push localhost:5000/${IMAGENAME}:${i}
+      docker push localhost:5000/"${IMAGENAME}":"${i}"
    done
 
-   for i in `seq ${TAGBEGIN} ${TAGEND}`
+   for i in $(seq ${TAGBEGIN} ${TAGEND})
    do
       echo "Removing image with tag ${i}"
-      docker rmi -f localhost:5000/${IMAGENAME}:${i}
+      docker rmi -f localhost:5000/"${IMAGENAME}":"${i}"
    done
 }
 
@@ -254,8 +254,8 @@ function pullImageFromLocalhost {
       exit 1
    fi
 
-   docker rmi -f localhost:5000/$IMAGENAME:$TAG
-   docker pull localhost:5000/$IMAGENAME:$TAG
+   docker rmi -f localhost:5000/"$IMAGENAME":"$TAG"
+   docker pull localhost:5000/"$IMAGENAME":"$TAG"
    EXITCODE=$?
    return $EXITCODE
 }
@@ -269,7 +269,7 @@ function pullImageFromLocalhost {
 #   TAG (required)       Tag of the image to pull from localhost:5000
 #######################################
 function assertImageExists {
-    pullImageFromLocalhost $1 $2
+    pullImageFromLocalhost "$1" "$2"
     assertEquals 0 $EXITCODE
 }
 
@@ -282,6 +282,6 @@ function assertImageExists {
 #   TAG (required)       Tag of the image to pull from localhost:5000
 #######################################
 function assertImageNotExists {
-    pullImageFromLocalhost $1 $2
+    pullImageFromLocalhost "$1" "$2"
     assertNotEquals 0 $EXITCODE
 }

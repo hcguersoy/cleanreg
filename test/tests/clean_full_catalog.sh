@@ -65,7 +65,7 @@ test_CleanFullCatalog_uses_keepNumber_for_all_repos_if_not_specified_in_confFile
     echo " *** creating configuration file"
 
    # setup conf file
-   tee $CLEANREG_WORKSPACE/test.conf <<EOF > /dev/null
+   tee "$CLEANREG_WORKSPACE"/test.conf <<EOF > /dev/null
 consul:
     keepimages: 20
 elasticsearch:
@@ -76,7 +76,7 @@ mongo:
     keepimages: 1
 postgres:
     keepimages: 0
-    keepsince: `date +%Y%m%d`
+    keepsince: $(date +%Y%m%d)
 redis:
     tag: 2
     keepimages: 0
@@ -86,7 +86,7 @@ EOF
 
    # run cleanreg with --clean-full-catalog -k 2
    # keeping 2 images of alpine and mysql, because they are not in the test.conf
-   runCleanregPython -f $CLEANREG_WORKSPACE/test.conf -vvv --clean-full-catalog -k 2 -re -s $((`date +%Y`+1))`date +%m%d`
+   runCleanregPython -f "$CLEANREG_WORKSPACE"/test.conf -vvv --clean-full-catalog -k 2 -re -s $(($(date +%Y)+1))$(date +%m%d)
 
     echo " *** checks after cleanreg"
    assertImageExists "consul" 1
