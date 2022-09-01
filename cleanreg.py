@@ -20,7 +20,8 @@ __author__ = 'Halil-Cem Guersoy (https://github.com/hcguersoy), ' \
              'Marvin becker (https://github.com/derwebcoder)', \
              'Julian Sauer (https://github.com/JulianSauer)', \
              'Jonas Tschoche (https://github.com/Jonas18175)', \
-             'Basilio Vera (https://github.com/bvis)'
+             'Basilio Vera (https://github.com/bvis)', \
+             'Valentin Fedoskin (https://github.com/slamdev)'
 __license__ = '''
 ------------------------------------------------------------------------------
 Copyright 2022
@@ -706,7 +707,7 @@ if __name__ == '__main__':
         update_progress(x, len(repos_counts))
         if args.verbose > 0:
             print ()
-            print ("will delete repo {0} and keep at least {1} images.".format(repo, count))
+            print ("Will delete repo {0} and keep at least {1} images.".format(repo, count))
         del_tags = get_deletiontags(args.verbose, repo_tags_dates_digest[repo], repo, tagname, count, args.regex, since)
 
         if len(del_tags) > 0:
