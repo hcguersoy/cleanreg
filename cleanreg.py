@@ -633,6 +633,7 @@ def get_deletiontags(verbose, tags_dates_digests, repo, tagname, keep_count, reg
     if since is not None and since != "":
         deletion_tags = processed_tags.copy()
         parsed_date = parse_date(since)
+        print ("Will delete and keep images created since {0}".format(parsed_date))
         for tag in deletion_tags.keys():
             deletion_tag_date = deletion_tags[tag]['date']
             if (deletion_tag_date.endswith('Z')):
