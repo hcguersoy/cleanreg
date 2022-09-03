@@ -3,3 +3,5 @@ test/testlog.txt
 .DS_Store
 venv
 .python-version
+.vscode
+test.conf

@@ -10,10 +10,18 @@ Please be aware of that this is a soft delete. You've to run the registry garbag
 
 Information about the needed garbage collection is described at [https://docs.docker.com/registry/garbage-collection/](https://docs.docker.com/registry/garbage-collection/).
 
+## Credits and Contributors
+
+The list of contributors can be found in the [authors list](https://github.com/hcguersoy/cleanreg/blob/master/cleanreg.py#L18)
+in the python code.
+
+This project uses [shunit2](https://github.com/kward/shunit2) by [Kate Ward](https://github.com/kward).
+
 ## History
 
+* v0.8.1 - Removes possible _Zulu_-Time marker from retrieved creation times (thanks to @slamdev for his [PR16](https://github.com/hcguersoy/cleanreg/pull/16))
 * v0.8.0 - Finally find the time to migrate to Python 3 and Github Actions. This comes this many changes in the code and the surrounding build system. Support for `linux\arm64` added.
-* v0.7.1 - Added a `--skip-tls-verify` attribute (_unreleased_)
+* v0.7.1 - Added a `--skip-tls-verify` attribute - this version was not released
 * v0.7 - This is a release which breaks some stuff (configuration file is now yaml based), adding new options for keeping images (e.g. `--since`, `--regex`) (thanks to @JulianSauer for his [PR10](https://github.com/hcguersoy/cleanreg/pull/10))
 * v0.6 - add `-cf` flag which allows to clean up all repos in a registry (thanks @kekru for his PR)
 * v0.5 - fix for issue [#8](https://github.com/hcguersoy/cleanreg/issues/8) which resulted in deleting more layers then intended; performance improvements; added `--metadata-workers` attribute
@@ -33,11 +41,11 @@ Be sure to configure your registry server to allow deletion (see [https://docs.d
 ## Usage
 
 Download the file _cleanreg.py_ or clone this repository to a local directory or pull the docker image.
-Beginning with version `v0.0.8`, images are supported for `linux/amd64` and (this is new) `linux\arm64`.
+Beginning with version `v0.8.0`, images are supported for `linux/amd64` and (this is new) `linux\arm64`.
 This is the suggested way to run `cleanreg`!
 
 ```shell
-docker pull hcguersoy/cleanreg:v0.8.0
+docker pull hcguersoy/cleanreg:v0.8.1
 ```
 
 The image is hosted here: [https://hub.docker.com/r/hcguersoy/cleanreg/](https://hub.docker.com/r/hcguersoy/cleanreg/ "")
@@ -47,7 +55,7 @@ _Hint:_ `latest` tag is not supported (you know, `latest` is evil :imp:).
 To get a immediate help simply run it without any parameters:
 
 ```shell
-$ docker run --rm hcguersoy/cleanreg:v0.8.0
+$ docker run --rm hcguersoy/cleanreg:v0.8.1
 usage: cleanreg.py [-h] [-v] -r REGISTRY [-p] [-y] [-q] [-n REPONAME:TAG]
                    [-k KEEPIMAGES] [-re] [-d DATE]
                    [-f REPOSFILE] [-c CACERT] [-sv] [-i] [-u BASICAUTHUSER]
@@ -138,9 +146,9 @@ ADD myconfig.yaml /config.yaml
 
 ## Examples
 
-**Attention:** It is strongly recommended that you use the _-i_ flag even it is more time and memory consuming. If not you can delete images / layers which you not wanted to delete because registry itself doesn't check if a digest is referenced by multiple tags!
+> :exclamation: It is strongly recommended that you use the `-i` flag even it is more time and memory consuming. If not you can delete images / layers which you not wanted to delete because registry itself doesn't check if a digest is referenced by multiple tags!
 
-Cleaning up a single repository called mysql on registry server 192.168.56.2:5000 and keeping 5 of the latest images:
+Cleaning up a single repository called mysql on registry server _192.168.56.2:5000_ and keeping 5 of the latest images:
 
 ```shell
 docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql -k 5
@@ -162,10 +170,10 @@ docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n 
 Will only delete the image mysql which is tagged as latest.
 
 ```shell
-docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql:.*temp.* -re -d 2018-01-01 -k 5 -i
+docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n mysql:.*temp.* -re -d 2022-01-01 -k 5 -i
 ```
 
-Removes all images that contain the word "temp" in their tag's and if they were created before 2018 but at least 5 will be kept in total.
+Removes all images that contain the word _"temp"_ in their tag's and if they were created before 2022 but at least 5 will be kept in total.
 
 ```shell
 docker run --rm -it hcguersoy/cleanreg:<version> -r http://192.168.56.2:5000 -n myalpine -k 50 -i -w 12
@@ -235,13 +243,15 @@ If you have installed a _semi secure_ registry server using TLS and self signed 
 If you run _cleanreg_ in a container you should not forget to mount the certificate file into the container like the configuration file above.
 Alternatively you can set the option `--skip-tls-verify`. In this case, you don't need to provide a certificate.
 
-> :exclamation: be aware that this should only used for (local) testing but not for productive environments.
+> :exclamation: be aware that this should only used for (local) testing and development but not for productive environments.
 
 If your registry is protected with basic auth and the username is `test` and the password is `secret`, you have to pass these credentials to _cleanreg_.
 
 ```shell
 ./cleanreg.py -r https://192.168.56.3:5000 -u test -pw secret -f cleanreg-example.conf
 ```
+
+> :exclamation: if you provide the password this way, the password will be saved in your shell history in cleartext!
 
 ## Running Garbage Collection
 
@@ -262,8 +272,10 @@ The registry itself should be stopped before running this.
 
 Feel free to contribute your changes as a PR. Please ensure that the tests run without errors and provide tests for additional functionality.
 
-This tool was initially implemented and tested on Ubuntu Linux 16.04 and on MacOS 10.13 using Python 2.7 and migrated to Python 3.10 on macOS 12 (arm64).
-It is developed and tested against Docker Registry version [v2.8.1](https://github.com/distribution/distribution/releases/tag/v2.8.1). The testing with older versions is dropped version 0.8.1.
+It may take some time until I get aware of your PR and some time, too, until I merge it. Sorry for this.
+
+This tool was initially implemented and tested on Ubuntu Linux 16.04 and on MacOS 10.13 using Python 2.7 and migrated to Python 3.10.
+It is developed and tested currently against Docker Registry version [v2.8.1](https://github.com/distribution/distribution/releases/tag/v2.8.1) on macOS 12 (arm64). The testing with older versions is dropped with version 0.8.1.
 It should work with older registry versions which are supporting the API, but they are not tested anymore.
 
 You need to install the Python modules _requests_ and _PyYAML_:
@@ -313,4 +325,4 @@ If the build was triggered due to the creation of a release, a GitHub Action wil
 Currently, two kinds of architectures are supported: `linux/amd64` and `linux/arm64`.
 The later one could be used on Apple Silicon systems this the according runtime, e. g. Rancher Desktop.
 
-> Due to lack of knowledge regarding other ARM systems (e. g. Raspberry Pi) you are very welcome to provide a PR.
+> Due to the lack of knowledge regarding other ARM systems (e. g. Raspberry Pi) you are very welcome to provide a PR.
